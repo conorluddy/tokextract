@@ -310,9 +310,10 @@ function extractFontEnumStaticLets(source: string, filePath: string): RawFinding
 
     if (!inFontEnum) {
       // Match `enum X {` or `public enum X {` (no String inheritance — those are Pass 3)
-      const enumStart = /^\s*(?:public\s+|internal\s+|fileprivate\s+|private\s+)?enum\s+(\w+)\s*(?:\{|$)/.exec(
-        line,
-      );
+      const enumStart =
+        /^\s*(?:public\s+|internal\s+|fileprivate\s+|private\s+)?enum\s+(\w+)\s*(?:\{|$)/.exec(
+          line,
+        );
       if (enumStart && !line.includes(":")) {
         // Lookahead: any static let inside whose value has PostScript-name shape (Word-Suffix)?
         const lookaheadBlock = lines.slice(i, i + 30).join("\n");

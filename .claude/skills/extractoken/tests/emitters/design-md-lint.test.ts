@@ -126,10 +126,12 @@ describe("design-md-lint", () => {
   });
 
   // === Test 4: missing-primary rule ===
-  it("[missing-primary] fails when no color token with primary/brand/accent in front-matter", () => {
+  it("[missing-primary] fails when no color token matches the core-keyword list", () => {
+    // The rule recognizes: primary | brand | accent | background | foreground |
+    // surface | body | text | main. Use names entirely outside that set.
     const noPrimary = VALID_STUB.replace(
       '  colors:\n    brand-primary: "{color.brand-primary}"\n    accent: "{color.accent}"',
-      '  colors:\n    surface-dark: "{color.surface-dark}"\n    subtle: "{color.subtle}"',
+      '  colors:\n    moss: "{color.moss}"\n    subtle: "{color.subtle}"',
     );
 
     const results = lintDesignMd(noPrimary, VALID_TOKENS_JSON, { isStub: true });
