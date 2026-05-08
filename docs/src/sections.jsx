@@ -285,7 +285,7 @@ function Roadmap() {
 function Footer() {
   const { footer, meta } = window.TOKEXTRACT;
   return (
-    <footer style={{ borderTop: '1px solid var(--vt-border)', padding: '24px 0', marginTop: 48, fontFamily: 'var(--vt-font-mono)', fontSize: 12, color: 'var(--vt-muted)', display: 'grid', gridTemplateColumns: '1fr auto', gap: 16 }}>
+    <footer style={{ borderTop: '1px solid var(--vt-border)', paddingBlock: '24px', marginTop: 48, fontFamily: 'var(--vt-font-mono)', fontSize: 12, color: 'var(--vt-muted)', display: 'grid', gridTemplateColumns: '1fr auto', gap: 16 }}>
       <div>
         Maintained by <a href={`mailto:${footer.email}`} style={{ color: 'var(--vt-ink-soft)' }}>{footer.maintainer}</a> · {footer.license} · <a href={meta.repo} style={{ color: 'var(--vt-ink-soft)' }}>github</a>
       </div>

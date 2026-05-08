@@ -25,6 +25,17 @@ a { color: inherit; text-decoration: none; }
 /* ── Page ─────────────────────────────────────────────────── */
 .vt-page { background: var(--vt-bg); color: var(--vt-ink); }
 
+/* Content max-width: backgrounds + borders stay edge-to-edge; inner content
+ * caps at 1440px on wide displays. The max() pattern keeps the original 32px
+ * (--vt-s-8) horizontal padding on narrow screens and auto-expands on wider
+ * screens to center the content block. */
+.vt-bar,
+.vt-hero,
+.vt-section,
+.vt-page > footer {
+  padding-inline: max(var(--vt-s-8), calc((100% - 1440px) / 2));
+}
+
 /* ── Bar / nav ────────────────────────────────────────────── */
 .vt-bar {
   display: flex; align-items: center; justify-content: space-between;
