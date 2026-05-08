@@ -58,7 +58,7 @@ Sample LLM-generated DESIGN.md from Ocras:
 From any Claude Code session:
 
 ```
-/plugin marketplace add /Users/conor/Development/Extoken
+/plugin marketplace add conorluddy/tokextract
 /plugin install tokextract@conorluddy
 ```
 

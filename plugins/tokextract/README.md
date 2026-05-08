@@ -22,15 +22,24 @@ All 9 token categories are extracted in a single run: color, typography, spacing
 
 ## Installation
 
-Requires **Node 20+**.
+Tokextract is a Claude Code plugin in the `conorluddy` marketplace. End users install via:
 
-```bash
-cd .claude/skills/tokextract
-npm install
-npm run build
+```
+/plugin marketplace add conorluddy/tokextract
+/plugin install tokextract@conorluddy
 ```
 
-The skill is auto-registered when you open a Claude Code session on the Extoken repo. No additional configuration needed.
+For local development on the plugin source (Node 20+):
+
+```bash
+cd plugins/tokextract
+npm install
+npm run build           # tsc + copy schemas to dist/
+npm test                # 246 vitest tests
+npx biome check .       # lint
+```
+
+After modifying source, refresh the installed plugin: `/plugin marketplace update conorluddy`.
 
 ---
 

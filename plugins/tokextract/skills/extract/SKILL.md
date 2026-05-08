@@ -208,7 +208,7 @@ This is a Claude Code plugin distributed through the `conorluddy` marketplace. T
 
 ```bash
 # Add the marketplace (one-time):
-/plugin marketplace add /Users/conor/Development/Extoken
+/plugin marketplace add conorluddy/tokextract
 
 # Install the plugin:
 /plugin install tokextract@conorluddy

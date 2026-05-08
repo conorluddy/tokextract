@@ -5,7 +5,7 @@ const TOKEXTRACT = {
   meta: {
     name:    'Tokextract',
     tag:     'reverse-engineer a SwiftUI app\'s design system',
-    repo:    'https://github.com/conorluddy/Extoken',  // placeholder until pushed
+    repo:    'https://github.com/conorluddy/tokextract',  // public; repo will be created when ready to share
     version: 'v1.0.0',
     license: 'MIT',
   },
@@ -49,7 +49,7 @@ const TOKEXTRACT = {
   install: {
     title: 'Install',
     steps: [
-      { label: 'Add the marketplace (one-time):',  cmd: '/plugin marketplace add /Users/conor/Development/Extoken' },
+      { label: 'Add the marketplace (one-time):',  cmd: '/plugin marketplace add conorluddy/tokextract' },
       { label: 'Install the plugin (one-time):',   cmd: '/plugin install tokextract@conorluddy' },
       { label: 'Run it on any SwiftUI repo:',      cmd: '/tokextract:extract --path <swift-repo> --output <dir>' },
     ],

@@ -60,7 +60,7 @@ After modifying source, rebuild and refresh the installed plugin: `/plugin marke
 From any Claude Code session:
 
 ```
-/plugin marketplace add /Users/conor/Development/Extoken    # one-time
+/plugin marketplace add conorluddy/tokextract    # one-time
 /plugin install tokextract@conorluddy                        # one-time
 /tokextract:extract --path <swift-repo> --output <dir>       # use it
 ```

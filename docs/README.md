@@ -46,7 +46,7 @@ Any modern browser works (React 18 UMD + Babel standalone). Babel transforms JSX
 
 ## GitHub Pages config (when ready)
 
-When the Extoken repo gets pushed to GitHub, enable Pages with **Deploy from branch** → `main` → `/docs`. Site goes live at `https://conorluddy.github.io/Extoken/`.
+When this repo gets pushed to `https://github.com/conorluddy/tokextract`, enable Pages with **Deploy from branch** → `main` → `/docs`. Site goes live at `https://conorluddy.github.io/tokextract/`.
 
 For a custom domain (e.g. `tokextract.com`), add a `CNAME` file to this directory and configure DNS at the registrar.
 

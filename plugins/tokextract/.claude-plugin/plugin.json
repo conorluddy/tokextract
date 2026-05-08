@@ -7,5 +7,7 @@
     "email": "conorluddy@gmail.com"
   },
   "license": "MIT",
+  "homepage": "https://conorluddy.github.io/tokextract/",
+  "repository": "https://github.com/conorluddy/tokextract",
   "keywords": ["swiftui", "design-tokens", "dtcg", "design-system", "ios", "extraction", "audit"]
 }
