@@ -1,6 +1,6 @@
 {
   "name": "tokextract",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Extract a design system (DTCG tokens + DESIGN.md + audit) from any SwiftUI codebase",
   "type": "module",
   "main": "dist/extract.js",
@@ -9,6 +9,7 @@
   },
   "scripts": {
     "build": "tsc && cp -r schemas dist/ && mkdir -p dist/emitters/preview && cp emitters/preview/*.html dist/emitters/preview/",
+    "postinstall": "npm run build",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "biome check .",

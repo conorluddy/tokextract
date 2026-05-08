@@ -13,7 +13,7 @@
       "name": "tokextract",
       "source": "./plugins/tokextract",
       "description": "Reverse-engineer a SwiftUI app's design system into DTCG tokens, brand-narrative DESIGN.md, and an audit report.",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": {
         "name": "Conor Luddy",
         "url": "https://www.conor.fyi"
