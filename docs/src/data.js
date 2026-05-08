@@ -53,7 +53,7 @@ const TOKEXTRACT = {
       { label: 'Install the plugin (one-time):',   cmd: '/plugin install tokextract@conorluddy' },
       { label: 'Run it on any SwiftUI repo:',      cmd: '/tokextract:extract --path <swift-repo> --output <dir>' },
     ],
-    note: 'The host Claude session spawns Haiku/Sonnet subagents for the LLM stages. No separate API key needed. For deterministic / CI use without LLM passes, run the bundled CLI directly with --no-llm.',
+    note: 'Agent spawns Haiku/Sonnet subagents for the LLM stages. No separate API key needed. For deterministic / CI use without LLM passes, run the bundled CLI directly with --no-llm.',
   },
 
   categories: [
@@ -91,15 +91,15 @@ const TOKEXTRACT = {
 
   pipeline: {
     title: 'Pipeline',
-    lede:  'Eight steps. Five Node, three host-Claude. The LLM stages are skipped entirely in --no-llm mode.',
+    lede:  'Eight steps. Five Node, three Agent. The LLM stages are skipped entirely in --no-llm mode.',
     steps: [
       { n: '1', host: 'Node',         name: 'parse',           desc: 'tree-sitter-swift × 9 category parsers (shared parse tree; query cache; ~4s on 727 files). Emits findings.raw.json + clusters.json + LLM task manifest.' },
-      { n: '2', host: 'host Claude',  name: 'normalize',       desc: 'Spawns 1-N Haiku subagents in parallel (≤50 declarations per chunk per category). Slim Mapping[] output stays under the 20k output cap.' },
+      { n: '2', host: 'Agent',  name: 'normalize',       desc: 'Spawns 1-N Haiku subagents in parallel (≤50 declarations per chunk per category). Slim Mapping[] output stays under the 20k output cap.' },
       { n: '3', host: 'Node',         name: 'plan-harmonize',  desc: 'Appends harmonize task to manifest, slim cluster summaries inlined into the prompt.' },
-      { n: '4', host: 'host Claude',  name: 'harmonize',       desc: 'Sonnet subagent. Outputs ranked recommendations with confidence labels and canonical-token-name proposals.' },
+      { n: '4', host: 'Agent',  name: 'harmonize',       desc: 'Sonnet subagent. Outputs ranked recommendations with confidence labels and canonical-token-name proposals.' },
       { n: '5', host: 'Node',         name: 'emit',            desc: 'Merges all LLM outputs + deterministic findings → DTCG-valid tokens.json + audit.md. Diff section auto-prepended on re-runs.' },
       { n: '6', host: 'Node',         name: 'plan-narrate',    desc: 'Appends narrate task referencing tokens.json + audit.md.' },
-      { n: '7', host: 'host Claude',  name: 'narrate',         desc: 'Sonnet subagent reads the artifacts and Writes DESIGN.md directly.' },
+      { n: '7', host: 'Agent',  name: 'narrate',         desc: 'Sonnet subagent reads the artifacts and Writes DESIGN.md directly.' },
       { n: '8', host: 'Node',         name: 'finalize',        desc: '8-rule DESIGN.md lint + summary print.' },
     ],
   },

@@ -230,7 +230,7 @@ function Pipeline() {
         {pipeline.steps.map((step, i) => (
           <Frame key={i} panel style={{ padding: 14, display: 'grid', gridTemplateColumns: 'auto auto 1fr', gap: 14, alignItems: 'baseline' }}>
             <div style={{ fontFamily: 'var(--vt-font-mono)', fontSize: 18, fontWeight: 600, color: 'var(--vt-accent)' }}>{step.n}</div>
-            <Pill tone={step.host === 'host Claude' ? 'accent' : undefined}>{step.host}</Pill>
+            <Pill tone={step.host === 'Agent' ? 'accent' : undefined}>{step.host}</Pill>
             <div>
               <div style={{ fontFamily: 'var(--vt-font-mono)', fontSize: 13, fontWeight: 600, color: 'var(--vt-ink)' }}>{step.name}</div>
               <div style={{ fontSize: 12.5, lineHeight: 1.55, color: 'var(--vt-ink-soft)', marginTop: 4 }}>{step.desc}</div>
