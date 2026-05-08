@@ -1,5 +1,7 @@
 /* ─────────────────────────────────────────────────────────────
- * tokens.css — Vestige design system tokens.
+ * tokens.css — Tokextract design system tokens.
+ * Lifted from Vestige's scaffold; palette swapped to the
+ * Tokextract spectrum (cyan → teal → periwinkle → purple → magenta).
  * Single source of truth for color, type, space, radius, motion.
  * ───────────────────────────────────────────────────────────── */
 :root {
@@ -12,19 +14,28 @@
   --vt-faint:     #2b2c2855;
   --vt-rule:      #13151522;
   --vt-rule-hi:   #13151544;
-  --vt-accent:    #339989;
-  --vt-mint:      #7de2d1;
-  --vt-accent-bg: #33998917;
-  --vt-mint-bg:   #7de2d133;
+
+  /* Tokextract palette: 75dddd-84c7d0-9297c4-9368b7-aa3e98
+   * cyan → teal → periwinkle → purple → magenta */
+  --tx-cyan:      #75dddd;  /* lightest pop — Mark logo, decorative */
+  --tx-teal:      #84c7d0;  /* calm secondary — pos/success */
+  --tx-periwinkle:#9297c4;  /* mid neutral cool — info */
+  --tx-purple:    #9368b7;  /* primary action — links, CTAs, accent chrome */
+  --tx-magenta:   #aa3e98;  /* hot attention — warn/highlight */
+
+  --vt-accent:    var(--tx-purple);
+  --vt-mint:      var(--tx-cyan);
+  --vt-accent-bg: #9368b71f;  /* purple @ ~12% */
+  --vt-mint-bg:   #75dddd33;  /* cyan @ ~20% */
 
   /* Inverse surface (footer, dark blocks) */
   --vt-ink-fg:    #fffafb;
   --vt-ink-mute:  #9a9087;
 
-  /* Status colors derived from primary */
-  --vt-pos:       #339989;
-  --vt-warn:      #c08a2a;
-  --vt-info:      #3a5a7a;
+  /* Status colors mapped from palette */
+  --vt-pos:       var(--tx-teal);
+  --vt-warn:      var(--tx-magenta);
+  --vt-info:      var(--tx-periwinkle);
 
   /* ── Type ────────────────────────────────────────────────── */
   --vt-font-sans: 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
