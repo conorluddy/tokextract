@@ -1,12 +1,4 @@
-# conorluddy — Claude Code plugin marketplace
-
-A small, opinionated marketplace of Claude Code plugins built for indie iOS / SwiftUI work. Currently shipping one plugin: **Tokextract**.
-
----
-
-## Plugins in this marketplace
-
-### Tokextract — reverse-engineer a SwiftUI design system
+# Tokextract — reverse-engineer a SwiftUI design system
 
 Most design-token tools go Figma → code. Tokextract goes the other way. Point it at a SwiftUI codebase and it produces three artifacts:
 
