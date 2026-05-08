@@ -1,0 +1,707 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tokextract — Design System Preview</title>
+<style>
+  :root {
+    --bg: #fafafa;
+    --surface: #ffffff;
+    --surface-2: #f3f3f3;
+    --ink: #111111;
+    --ink-soft: #555555;
+    --ink-faint: #999999;
+    --rule: #e5e5e5;
+    --accent: #2b6cb0;
+    --warn: #b7791f;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: var(--sans);
+    color: var(--ink);
+    background: var(--bg);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code, pre { font-family: var(--mono); font-size: 0.9em; }
+  pre { background: var(--surface-2); padding: 0.75rem; border-radius: 6px; overflow-x: auto; }
+  code { background: var(--surface-2); padding: 0.1em 0.3em; border-radius: 3px; }
+  pre code { background: transparent; padding: 0; }
+
+  .layout { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }
+  nav.sidebar {
+    position: sticky; top: 0; align-self: start;
+    height: 100vh; overflow-y: auto;
+    border-right: 1px solid var(--rule);
+    background: var(--surface);
+    padding: 1.5rem 1rem;
+  }
+  nav.sidebar h1 {
+    font-size: 13px; font-weight: 700; margin: 0 0 1rem 0;
+    text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-soft);
+  }
+  nav.sidebar ul { list-style: none; padding: 0; margin: 0; }
+  nav.sidebar li { margin: 0.4rem 0; }
+  nav.sidebar a { color: var(--ink); display: block; padding: 0.25rem 0; }
+  nav.sidebar .meta {
+    margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--rule);
+    font-size: 12px; color: var(--ink-faint); line-height: 1.6;
+  }
+  nav.sidebar .meta strong { color: var(--ink-soft); font-weight: 600; }
+
+  main { padding: 2rem 2.5rem; max-width: 1200px; }
+  section { margin-bottom: 4rem; scroll-margin-top: 1rem; }
+  section h2 {
+    font-size: 22px; font-weight: 700; margin: 0 0 0.25rem 0;
+    border-bottom: 1px solid var(--rule); padding-bottom: 0.5rem;
+  }
+  section h2 .count { color: var(--ink-faint); font-weight: 400; font-size: 14px; margin-left: 0.5rem; }
+  section h3 { font-size: 16px; font-weight: 600; margin: 1.5rem 0 0.75rem; color: var(--ink-soft); }
+
+  .banner {
+    padding: 0.75rem 1rem; background: #fff8e6; border: 1px solid #f0d68c;
+    border-radius: 6px; margin: 1rem 0; color: #5a4400; font-size: 13px;
+  }
+
+  /* === COLORS === */
+  .swatch-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+  }
+  .swatch {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+  .swatch:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+  .swatch .chip { height: 80px; }
+  .swatch .body { padding: 0.5rem 0.625rem; font-size: 12px; }
+  .swatch .name { font-family: var(--mono); font-weight: 500; word-break: break-all; }
+  .swatch .hex { color: var(--ink-faint); font-family: var(--mono); margin-top: 2px; }
+  .swatch .src { color: var(--ink-faint); font-size: 11px; margin-top: 4px; word-break: break-all; }
+  .swatch.expanded .details { display: block; }
+  .swatch .details {
+    display: none;
+    padding: 0.5rem 0.625rem;
+    border-top: 1px solid var(--rule);
+    background: var(--surface-2);
+  }
+  .swatch .details pre { font-size: 11px; margin: 0; padding: 0.5rem; }
+
+  /* === CLUSTERS === */
+  .cluster {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+  .cluster header {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 0.75rem;
+  }
+  .cluster header h4 { margin: 0; font-size: 14px; font-weight: 600; }
+  .cluster header .delta { color: var(--warn); font-family: var(--mono); font-size: 12px; }
+  .cluster-row {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: 1rem;
+    align-items: stretch;
+  }
+  .cluster-canon {
+    display: flex; flex-direction: column;
+    border-right: 1px solid var(--rule); padding-right: 1rem;
+  }
+  .cluster-canon .chip { height: 80px; border-radius: 4px; }
+  .cluster-canon .label { font-size: 11px; margin-top: 0.5rem; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; }
+  .cluster-canon .name { font-family: var(--mono); font-size: 12px; word-break: break-all; }
+  .cluster-members {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px;
+  }
+  .cluster-member { font-size: 11px; }
+  .cluster-member .chip { height: 40px; border-radius: 3px; }
+  .cluster-member .name { font-family: var(--mono); margin-top: 4px; word-break: break-all; }
+  .cluster-member .src { color: var(--ink-faint); font-size: 10px; }
+
+  /* === TYPOGRAPHY === */
+  .type-row {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 1.5rem;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .type-row .meta { font-size: 12px; color: var(--ink-soft); }
+  .type-row .meta .name { font-family: var(--mono); font-weight: 500; color: var(--ink); word-break: break-all; }
+  .type-row .meta .specs { margin-top: 0.5rem; line-height: 1.6; }
+  .type-row .meta .specs code { font-size: 11px; }
+  .type-row .sample { color: var(--ink); }
+
+  /* === SPACING & SHAPE === */
+  .scale-strip {
+    display: flex; flex-direction: column; gap: 0.5rem;
+  }
+  .scale-strip .row {
+    display: grid; grid-template-columns: 200px 1fr; align-items: center;
+    gap: 1rem; padding: 0.5rem 0; border-bottom: 1px solid var(--rule);
+  }
+  .scale-strip .row .label { font-family: var(--mono); font-size: 12px; }
+  .scale-strip .row .label .px { color: var(--ink-faint); margin-left: 0.5rem; }
+  .scale-strip .row .bar { background: var(--ink); height: 16px; }
+  .corner-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 1rem;
+  }
+  .corner-grid .item { text-align: center; font-size: 12px; }
+  .corner-grid .box {
+    width: 80px; height: 80px; background: var(--ink); margin: 0 auto 0.5rem;
+  }
+  .corner-grid .name { font-family: var(--mono); }
+
+  /* === DESIGN.md === */
+  .markdown { max-width: 760px; }
+  .markdown h1 { font-size: 26px; margin-top: 0; }
+  .markdown h2 { font-size: 20px; border-bottom: 1px solid var(--rule); padding-bottom: 0.3rem; margin-top: 2rem; }
+  .markdown h3 { font-size: 16px; margin-top: 1.5rem; }
+  .markdown h4 { font-size: 14px; margin-top: 1.25rem; color: var(--ink-soft); }
+  .markdown p, .markdown li { line-height: 1.65; }
+  .markdown ul, .markdown ol { padding-left: 1.5rem; }
+  .markdown blockquote {
+    border-left: 3px solid var(--rule); padding-left: 1rem; color: var(--ink-soft); margin: 1rem 0;
+  }
+  .markdown table { border-collapse: collapse; margin: 1rem 0; }
+  .markdown th, .markdown td { border: 1px solid var(--rule); padding: 0.4rem 0.75rem; text-align: left; }
+  .markdown th { background: var(--surface-2); }
+  .token-ref {
+    display: inline-flex; align-items: center; gap: 0.35em;
+    background: var(--surface-2); padding: 0.05em 0.4em; border-radius: 3px;
+    font-family: var(--mono); font-size: 0.9em; cursor: pointer;
+  }
+  .token-ref .dot { width: 0.8em; height: 0.8em; border-radius: 2px; border: 1px solid rgba(0,0,0,0.1); }
+  .token-ref.unresolved { color: var(--warn); }
+
+  .empty { color: var(--ink-faint); font-style: italic; padding: 1rem 0; }
+
+  .flash { animation: flash 1.5s ease-out; }
+  @keyframes flash {
+    0% { box-shadow: 0 0 0 4px rgba(43, 108, 176, 0.5); }
+    100% { box-shadow: 0 0 0 0 rgba(43, 108, 176, 0); }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav class="sidebar">
+    <h1>Tokextract</h1>
+    <ul>
+      <li><a href="#overview">Overview</a></li>
+      <li><a href="#colors">Colors</a></li>
+      <li><a href="#clusters">ΔE Clusters</a></li>
+      <li><a href="#typography">Typography</a></li>
+      <li><a href="#spacing">Spacing &amp; Shape</a></li>
+      <li><a href="#design">DESIGN.md</a></li>
+    </ul>
+    <div class="meta" id="sidebar-meta"></div>
+  </nav>
+  <main>
+    <section id="overview">
+      <h2>Overview</h2>
+      <div id="overview-body"></div>
+    </section>
+    <section id="colors">
+      <h2>Colors <span class="count" id="colors-count"></span></h2>
+      <div id="colors-body"></div>
+    </section>
+    <section id="clusters">
+      <h2>ΔE Clusters <span class="count" id="clusters-count"></span></h2>
+      <div id="clusters-body"></div>
+    </section>
+    <section id="typography">
+      <h2>Typography <span class="count" id="typography-count"></span></h2>
+      <div id="typography-body"></div>
+    </section>
+    <section id="spacing">
+      <h2>Spacing &amp; Shape</h2>
+      <div id="spacing-body"></div>
+    </section>
+    <section id="design">
+      <h2>DESIGN.md</h2>
+      <div id="design-body" class="markdown"></div>
+    </section>
+  </main>
+</div>
+
+<script id="tokextract-data" type="application/json">
+<!-- TOKEXTRACT_DATA -->
+</script>
+
+<script>
+(function () {
+  "use strict";
+  const dataEl = document.getElementById("tokextract-data");
+  const data = JSON.parse(dataEl.textContent);
+  const tokens = data.tokens || {};
+  const tokenIndex = buildTokenIndex(tokens);
+
+  renderSidebarMeta(data.meta, tokens);
+  renderOverview(data.meta, tokens);
+  renderColors(tokens);
+  renderClusters(data.clusters || []);
+  renderTypography(tokens);
+  renderSpacing(tokens);
+  renderDesignMd(data.designMd || "");
+
+  // === HELPERS ===
+  function el(tag, attrs, children) {
+    const node = document.createElement(tag);
+    if (attrs) for (const k in attrs) {
+      if (k === "class") node.className = attrs[k];
+      else if (k === "html") node.innerHTML = attrs[k];
+      else if (k.startsWith("on") && typeof attrs[k] === "function") node.addEventListener(k.slice(2), attrs[k]);
+      else node.setAttribute(k, attrs[k]);
+    }
+    if (children) {
+      const arr = Array.isArray(children) ? children : [children];
+      for (const c of arr) {
+        if (c == null) continue;
+        node.appendChild(typeof c === "string" ? document.createTextNode(c) : c);
+      }
+    }
+    return node;
+  }
+
+  function srgbToHex(components) {
+    if (!Array.isArray(components) || components.length < 3) return "#000000";
+    const r = clamp255(components[0]);
+    const g = clamp255(components[1]);
+    const b = clamp255(components[2]);
+    return "#" + hex2(r) + hex2(g) + hex2(b);
+  }
+  function clamp255(v) { return Math.max(0, Math.min(255, Math.round((v || 0) * 255))); }
+  function hex2(n) { return n.toString(16).padStart(2, "0"); }
+  function srgbToCss(value) {
+    if (!value || !Array.isArray(value.components)) return "transparent";
+    const c = value.components;
+    const r = clamp255(c[0]), g = clamp255(c[1]), b = clamp255(c[2]);
+    const a = c.length > 3 ? c[3] : 1;
+    return `rgba(${r}, ${g}, ${b}, ${a})`;
+  }
+
+  // Walk DTCG tree and collect leaves of the requested $type. Skips theme group.
+  function collectTokens(tree, wantType) {
+    const out = [];
+    walk(tree, [], out, wantType);
+    return out;
+  }
+  function walk(node, path, out, wantType) {
+    if (!node || typeof node !== "object") return;
+    if (typeof node.$value !== "undefined" && typeof node.$type === "string") {
+      if (!wantType || node.$type === wantType) {
+        out.push({ path: path.join("."), token: node });
+      }
+      return;
+    }
+    for (const key in node) {
+      if (key.startsWith("$")) continue;
+      walk(node[key], path.concat(key), out, wantType);
+    }
+  }
+
+  function buildTokenIndex(tree) {
+    const idx = {};
+    const all = [];
+    walk(tree, [], all, null);
+    for (const t of all) idx[t.path] = t.token;
+    return idx;
+  }
+
+  function renderSidebarMeta(meta, tokens) {
+    const counts = countByCategory(tokens);
+    const total = Object.values(counts).reduce((a, b) => a + b, 0);
+    const lines = [];
+    lines.push("<strong>" + escapeHtml(meta.appName || "(unknown)") + "</strong>");
+    if (meta.vendorNamespace) lines.push(escapeHtml(meta.vendorNamespace));
+    if (meta.extractedAt) lines.push("Extracted " + escapeHtml(meta.extractedAt.slice(0, 10)));
+    lines.push("");
+    lines.push(total + " tokens");
+    document.getElementById("sidebar-meta").innerHTML = lines.join("<br>");
+  }
+
+  function countByCategory(tree) {
+    const counts = {};
+    for (const key in tree) {
+      if (key.startsWith("$")) continue;
+      const leaves = [];
+      walk(tree[key], [], leaves, null);
+      counts[key] = leaves.length;
+    }
+    return counts;
+  }
+
+  function renderOverview(meta, tokens) {
+    const counts = countByCategory(tokens);
+    const body = document.getElementById("overview-body");
+    const dl = el("div", { class: "overview-grid" });
+    const rows = [
+      ["App", meta.appName || "(unknown)"],
+      ["Vendor namespace", meta.vendorNamespace || "(unknown)"],
+      ["Source", meta.repoPath || "(unknown)"],
+      ["Extracted", meta.extractedAt || "(unknown)"],
+    ];
+    const table = el("table", { class: "overview-table" });
+    for (const [k, v] of rows) {
+      const tr = el("tr", null, [el("th", null, k), el("td", null, String(v))]);
+      table.appendChild(tr);
+    }
+    body.appendChild(table);
+
+    const summary = el("div", { class: "category-counts" });
+    for (const cat of Object.keys(counts).sort()) {
+      summary.appendChild(el("div", { class: "cat" }, [
+        el("span", { class: "n" }, String(counts[cat])),
+        el("span", { class: "k" }, cat),
+      ]));
+    }
+    body.appendChild(summary);
+
+    // light styles
+    const style = document.createElement("style");
+    style.textContent = `
+      .overview-table { border-collapse: collapse; margin-bottom: 1.5rem; }
+      .overview-table th, .overview-table td { padding: 0.4rem 0.75rem; text-align: left; border-bottom: 1px solid var(--rule); font-size: 13px; }
+      .overview-table th { color: var(--ink-soft); font-weight: 500; width: 200px; }
+      .category-counts { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 0.75rem; }
+      .category-counts .cat { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 0.75rem; text-align: center; }
+      .category-counts .n { display: block; font-size: 22px; font-weight: 600; }
+      .category-counts .k { font-size: 11px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function renderColors(tokens) {
+    const colors = collectTokens(tokens.color || {}, "color");
+    document.getElementById("colors-count").textContent = colors.length + " tokens";
+    const body = document.getElementById("colors-body");
+    if (colors.length === 0) { body.appendChild(el("div", { class: "empty" }, "No color tokens.")); return; }
+
+    // Group by sub-group (second segment of path)
+    const groups = {};
+    for (const c of colors) {
+      const segs = c.path.split(".");
+      const group = segs.length > 1 ? segs[0] : "(root)";
+      (groups[group] = groups[group] || []).push(c);
+    }
+
+    for (const group of Object.keys(groups).sort()) {
+      body.appendChild(el("h3", null, group + " · " + groups[group].length));
+      const grid = el("div", { class: "swatch-grid" });
+      for (const c of groups[group]) grid.appendChild(swatchEl(c.path, c.token));
+      body.appendChild(grid);
+    }
+  }
+
+  function swatchEl(path, token) {
+    const css = srgbToCss(token.$value);
+    const hex = srgbToHex(token.$value && token.$value.components);
+    const sw = el("div", { class: "swatch", id: "swatch-" + cssId(path) });
+    sw.appendChild(el("div", { class: "chip", style: "background:" + css }));
+    const body = el("div", { class: "body" });
+    body.appendChild(el("div", { class: "name" }, path));
+    body.appendChild(el("div", { class: "hex" }, hex));
+    if (token.$description) body.appendChild(el("div", { class: "src" }, token.$description));
+    sw.appendChild(body);
+    const details = el("div", { class: "details" });
+    details.appendChild(el("pre", null, JSON.stringify({ [path]: token }, null, 2)));
+    sw.appendChild(details);
+    sw.addEventListener("click", () => sw.classList.toggle("expanded"));
+    return sw;
+  }
+
+  function renderClusters(clusters) {
+    const body = document.getElementById("clusters-body");
+    document.getElementById("clusters-count").textContent = clusters.length + " clusters";
+    if (clusters.length === 0) {
+      body.appendChild(el("div", { class: "empty" }, "No near-duplicate clusters detected (or clustering not run)."));
+      return;
+    }
+    for (const cluster of clusters) {
+      const card = el("div", { class: "cluster" });
+      const header = el("header");
+      header.appendChild(el("h4", null, "Cluster " + clusterLabel(cluster.clusterId) + " · " + cluster.members.length + " members"));
+      header.appendChild(el("span", { class: "delta" }, "Max ΔE " + (cluster.deltaEMax != null ? cluster.deltaEMax.toFixed(2) : "?")));
+      card.appendChild(header);
+      const row = el("div", { class: "cluster-row" });
+      const canon = el("div", { class: "cluster-canon" });
+      canon.appendChild(el("div", { class: "chip", style: "background:" + (cluster.proposedCanonical.cssColor || "transparent") }));
+      canon.appendChild(el("div", { class: "label" }, "Canonical"));
+      canon.appendChild(el("div", { class: "name" }, cluster.proposedCanonical.declName || cluster.proposedCanonical.rawValue));
+      row.appendChild(canon);
+      const members = el("div", { class: "cluster-members" });
+      for (const m of cluster.members) {
+        const mEl = el("div", { class: "cluster-member" });
+        mEl.appendChild(el("div", { class: "chip", style: "background:" + (m.cssColor || "transparent") }));
+        mEl.appendChild(el("div", { class: "name" }, m.declName || m.rawValue));
+        if (m.sourcePath) mEl.appendChild(el("div", { class: "src" }, shortenPath(m.sourcePath) + ":" + m.line));
+        members.appendChild(mEl);
+      }
+      row.appendChild(members);
+      card.appendChild(row);
+      body.appendChild(card);
+    }
+  }
+  function clusterLabel(id) {
+    if (typeof id !== "number") return String(id);
+    if (id < 26) return String.fromCharCode(65 + id);
+    return "A" + String.fromCharCode(65 + (id % 26));
+  }
+
+  function renderTypography(tokens) {
+    const list = collectTokens(tokens.typography || {}, "typography");
+    document.getElementById("typography-count").textContent = list.length + " tokens";
+    const body = document.getElementById("typography-body");
+    if (list.length === 0) { body.appendChild(el("div", { class: "empty" }, "No typography tokens.")); return; }
+
+    // Detect predominant font family for @font-face hint
+    const fams = {};
+    for (const t of list) {
+      const f = (t.token.$value && t.token.$value.fontFamily) || "";
+      if (f) fams[f] = (fams[f] || 0) + 1;
+    }
+    const topFam = Object.keys(fams).sort((a, b) => fams[b] - fams[a])[0];
+    if (topFam) {
+      body.appendChild(el("div", { class: "banner" },
+        "Typography rendered with system fallback. Source font \"" + topFam + "\" is not bundled with the preview — visual weights/metrics will approximate."));
+    }
+
+    // Group by sub-group
+    const groups = {};
+    for (const t of list) {
+      const segs = t.path.split(".");
+      const group = segs.length > 1 ? segs[0] : "(root)";
+      (groups[group] = groups[group] || []).push(t);
+    }
+    for (const group of Object.keys(groups).sort()) {
+      body.appendChild(el("h3", null, group + " · " + groups[group].length));
+      for (const t of groups[group]) body.appendChild(typeRow(t.path, t.token));
+    }
+  }
+
+  function typeRow(path, token) {
+    const v = token.$value || {};
+    const sample = "The quick brown fox jumps · 1 2 3 4 5";
+    const sizePx = parseDim(v.fontSize);
+    const lineHeight = v.lineHeight || "normal";
+    const sampleStyle = [
+      v.fontFamily ? `font-family: "${v.fontFamily}", var(--sans)` : "",
+      sizePx ? `font-size: ${sizePx}px` : "",
+      v.fontWeight ? `font-weight: ${v.fontWeight}` : "",
+      `line-height: ${lineHeight}`,
+      v.letterSpacing ? `letter-spacing: ${parseDim(v.letterSpacing) || 0}px` : "",
+    ].filter(Boolean).join("; ");
+    const row = el("div", { class: "type-row" });
+    const meta = el("div", { class: "meta" });
+    meta.appendChild(el("div", { class: "name" }, path));
+    const specs = el("div", { class: "specs" });
+    if (v.fontFamily) specs.appendChild(el("div", null, [el("code", null, v.fontFamily)]));
+    const inline = [];
+    if (v.fontSize) inline.push(String(v.fontSize));
+    if (v.fontWeight) inline.push(String(v.fontWeight));
+    if (v.lineHeight) inline.push("lh " + v.lineHeight);
+    if (v.letterSpacing) inline.push("ls " + v.letterSpacing);
+    if (inline.length) specs.appendChild(el("div", null, [el("code", null, inline.join(" · "))]));
+    meta.appendChild(specs);
+    row.appendChild(meta);
+    row.appendChild(el("div", { class: "sample", style: sampleStyle }, sample));
+    return row;
+  }
+
+  function parseDim(v) {
+    if (typeof v === "number") return v;
+    if (typeof v !== "string") return null;
+    const m = v.match(/^(-?\d+(?:\.\d+)?)/);
+    return m ? parseFloat(m[1]) : null;
+  }
+
+  function renderSpacing(tokens) {
+    const body = document.getElementById("spacing-body");
+    const spacing = collectTokens(tokens.spacing || {}, "dimension");
+    const corner = collectTokens(tokens.cornerRadius || {}, "dimension");
+    const shadow = collectTokens(tokens.shadow || {}, "shadow");
+
+    if (spacing.length === 0 && corner.length === 0 && shadow.length === 0) {
+      body.appendChild(el("div", { class: "empty" }, "No spacing, cornerRadius, or shadow tokens."));
+      return;
+    }
+
+    if (spacing.length) {
+      body.appendChild(el("h3", null, "Spacing · " + spacing.length));
+      const sorted = spacing.slice().sort((a, b) => (parseDim(a.token.$value) || 0) - (parseDim(b.token.$value) || 0));
+      const max = Math.max(...sorted.map(t => parseDim(t.token.$value) || 0), 1);
+      const strip = el("div", { class: "scale-strip" });
+      for (const t of sorted) {
+        const val = parseDim(t.token.$value) || 0;
+        const r = el("div", { class: "row" });
+        r.appendChild(el("div", { class: "label" }, [
+          document.createTextNode(t.path),
+          el("span", { class: "px" }, String(t.token.$value)),
+        ]));
+        r.appendChild(el("div", { class: "bar", style: `width: ${(val / max) * 100}%` }));
+        strip.appendChild(r);
+      }
+      body.appendChild(strip);
+    }
+
+    if (corner.length) {
+      body.appendChild(el("h3", null, "Corner radius · " + corner.length));
+      const grid = el("div", { class: "corner-grid" });
+      const sorted = corner.slice().sort((a, b) => (parseDim(a.token.$value) || 0) - (parseDim(b.token.$value) || 0));
+      for (const t of sorted) {
+        const val = parseDim(t.token.$value) || 0;
+        const item = el("div", { class: "item" });
+        item.appendChild(el("div", { class: "box", style: `border-radius: ${val}px` }));
+        item.appendChild(el("div", { class: "name" }, t.path));
+        item.appendChild(el("div", null, String(t.token.$value)));
+        grid.appendChild(item);
+      }
+      body.appendChild(grid);
+    }
+
+    if (shadow.length) {
+      body.appendChild(el("h3", null, "Shadow · " + shadow.length));
+      const grid = el("div", { class: "corner-grid" });
+      for (const t of shadow) {
+        const v = t.token.$value || {};
+        const blur = parseDim(v.blur) || 0;
+        const off = parseDim(v.offsetY) || 0;
+        const colorCss = v.color && v.color.components ? srgbToCss(v.color) : "rgba(0,0,0,0.2)";
+        const item = el("div", { class: "item" });
+        const box = el("div", { class: "box", style: `background: white; box-shadow: 0 ${off}px ${blur}px ${colorCss}; border: 1px solid var(--rule);` });
+        item.appendChild(box);
+        item.appendChild(el("div", { class: "name" }, t.path));
+        grid.appendChild(item);
+      }
+      body.appendChild(grid);
+    }
+  }
+
+  function renderDesignMd(md) {
+    const body = document.getElementById("design-body");
+    if (!md.trim()) { body.appendChild(el("div", { class: "empty" }, "DESIGN.md is empty.")); return; }
+    body.innerHTML = renderMarkdown(md);
+    // Wire token-ref clicks
+    body.querySelectorAll(".token-ref").forEach(node => {
+      node.addEventListener("click", () => {
+        const id = node.getAttribute("data-token");
+        const target = document.getElementById("swatch-" + cssId(id));
+        if (target) {
+          target.scrollIntoView({ behavior: "smooth", block: "center" });
+          target.classList.remove("flash"); void target.offsetWidth; target.classList.add("flash");
+        }
+      });
+    });
+  }
+
+  // Minimal markdown renderer: frontmatter strip, headings, lists, code, paragraphs,
+  // tables (pipe), blockquotes, **bold**, *italic*, `code`, links, and {{token.path}}.
+  function renderMarkdown(src) {
+    // Strip YAML frontmatter
+    src = src.replace(/^---\n[\s\S]*?\n---\n?/, "");
+    const lines = src.split("\n");
+    const out = [];
+    let i = 0;
+    while (i < lines.length) {
+      const line = lines[i];
+      // Code fence
+      if (/^```/.test(line)) {
+        const buf = [];
+        i++;
+        while (i < lines.length && !/^```/.test(lines[i])) { buf.push(lines[i]); i++; }
+        i++;
+        out.push("<pre><code>" + escapeHtml(buf.join("\n")) + "</code></pre>");
+        continue;
+      }
+      // Heading
+      const h = line.match(/^(#{1,6})\s+(.*)$/);
+      if (h) { out.push("<h" + h[1].length + ">" + inline(h[2]) + "</h" + h[1].length + ">"); i++; continue; }
+      // Table
+      if (/^\|/.test(line) && i + 1 < lines.length && /^\|?\s*-{2,}/.test(lines[i + 1])) {
+        const head = splitRow(line);
+        i += 2;
+        const rows = [];
+        while (i < lines.length && /^\|/.test(lines[i])) { rows.push(splitRow(lines[i])); i++; }
+        out.push("<table><thead><tr>" + head.map(c => "<th>" + inline(c) + "</th>").join("") + "</tr></thead><tbody>" +
+          rows.map(r => "<tr>" + r.map(c => "<td>" + inline(c) + "</td>").join("") + "</tr>").join("") + "</tbody></table>");
+        continue;
+      }
+      // Blockquote
+      if (/^>\s?/.test(line)) {
+        const buf = [];
+        while (i < lines.length && /^>\s?/.test(lines[i])) { buf.push(lines[i].replace(/^>\s?/, "")); i++; }
+        out.push("<blockquote>" + inline(buf.join(" ")) + "</blockquote>");
+        continue;
+      }
+      // Lists
+      if (/^[-*]\s+/.test(line)) {
+        const buf = [];
+        while (i < lines.length && /^[-*]\s+/.test(lines[i])) { buf.push(lines[i].replace(/^[-*]\s+/, "")); i++; }
+        out.push("<ul>" + buf.map(b => "<li>" + inline(b) + "</li>").join("") + "</ul>");
+        continue;
+      }
+      if (/^\d+\.\s+/.test(line)) {
+        const buf = [];
+        while (i < lines.length && /^\d+\.\s+/.test(lines[i])) { buf.push(lines[i].replace(/^\d+\.\s+/, "")); i++; }
+        out.push("<ol>" + buf.map(b => "<li>" + inline(b) + "</li>").join("") + "</ol>");
+        continue;
+      }
+      // Blank line
+      if (!line.trim()) { i++; continue; }
+      // Paragraph
+      const buf = [];
+      while (i < lines.length && lines[i].trim() && !/^(#{1,6}\s|[-*]\s|\d+\.\s|>|\||```)/.test(lines[i])) {
+        buf.push(lines[i]); i++;
+      }
+      out.push("<p>" + inline(buf.join(" ")) + "</p>");
+    }
+    return out.join("\n");
+  }
+  function splitRow(line) {
+    const trimmed = line.replace(/^\|/, "").replace(/\|\s*$/, "");
+    return trimmed.split("|").map(c => c.trim());
+  }
+  function inline(s) {
+    s = escapeHtml(s);
+    s = s.replace(/`([^`]+)`/g, (_, c) => "<code>" + c + "</code>");
+    s = s.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+    s = s.replace(/\*([^*]+)\*/g, "<em>$1</em>");
+    s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+    s = s.replace(/\{\{\s*([a-zA-Z0-9_.\-]+)\s*\}\}/g, (m, p) => renderTokenRef(p));
+    return s;
+  }
+  function renderTokenRef(p) {
+    const tok = tokenIndex[p];
+    if (!tok) return '<span class="token-ref unresolved" title="Unresolved token">{{' + escapeHtml(p) + '}}</span>';
+    let dot = "";
+    if (tok.$type === "color") dot = '<span class="dot" style="background:' + srgbToCss(tok.$value) + '"></span>';
+    return '<span class="token-ref" data-token="' + escapeAttr(p) + '" title="' + escapeAttr(p) + '">' + dot + escapeHtml(p) + '</span>';
+  }
+  function escapeHtml(s) { return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+  function escapeAttr(s) { return escapeHtml(s).replace(/'/g, "&#39;"); }
+  function cssId(p) { return String(p).replace(/[^a-zA-Z0-9_-]/g, "_"); }
+  function shortenPath(p) {
+    if (!p) return "";
+    const parts = String(p).split("/");
+    return parts.slice(-2).join("/");
+  }
+})();
+</script>
+</body>
+</html>

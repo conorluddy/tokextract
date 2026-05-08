@@ -8,7 +8,7 @@
     "tokextract": "dist/extract.js"
   },
   "scripts": {
-    "build": "tsc && cp -r schemas dist/",
+    "build": "tsc && cp -r schemas dist/ && mkdir -p dist/emitters/preview && cp emitters/preview/*.html dist/emitters/preview/",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "biome check .",

@@ -104,6 +104,7 @@ This:
 - Merges normalize + harmonize mappings with findings (Node-side)
 - Validates against DTCG 2025.10 schema (Ajv — hard error on failure)
 - Writes `<out>/tokens.json`, `<out>/audit.md`, `<out>/DESIGN.md` (stub in --no-llm)
+- Writes `<out>/preview.html` — self-contained visual review of the extracted system (open it directly in a browser; no server, no build step)
 - Computes diff vs `<out>/.tokextract/previous/tokens.json` (if it exists) → appended to audit.md
 - Snapshots `tokens.json` to `<out>/.tokextract/previous/tokens.json` for diff on next run
 
@@ -169,6 +170,7 @@ Prints a summary of what was extracted.
 ├── audit.md                 # Drift report (7 sections: magic numbers, near-duplicates,
 │                            #   orphaned tokens, off-scale values, glass violations,
 │                            #   harmonization, changes since last extraction)
+├── preview.html             # Self-contained visual review (swatches, ΔE clusters, type scale)
 └── .tokextract/            # Internal state — delete to force clean re-run
     ├── findings.raw.json
     ├── clusters.json

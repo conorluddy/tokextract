@@ -29,6 +29,7 @@ import { emitAuditReport } from "./emitters/audit-report.js";
 import { formatLintErrors, lintDesignMd } from "./emitters/design-md-lint.js";
 import { emitDesignMd } from "./emitters/design-md.js";
 import { buildMechanicalCandidates, emitDtcg } from "./emitters/dtcg.js";
+import { emitPreviewHtml } from "./emitters/preview-html.js";
 import { writeHarmonizeManifest } from "./llm/harmonize.js";
 import { loadHarmonizeRecommendations, mergeMappings } from "./llm/merge.js";
 import { writeNarrateManifest } from "./llm/narrate.js";
@@ -966,6 +967,32 @@ async function runEmit(options: EmitOptions): Promise<void> {
     },
   );
   console.log(`  Wrote DESIGN.md to ${designMdPath}`);
+
+  // === Stage 7b: Emit preview.html ===
+  console.log("Stage 7b: Emitting preview.html...");
+  try {
+    const tokensJson = JSON.parse(fs.readFileSync(emitResult.tokensPath, "utf-8")) as unknown;
+    const designMdContent = fs.readFileSync(designMdPath, "utf-8");
+    const previewPath = emitPreviewHtml(
+      {
+        tokens: tokensJson,
+        designMd: designMdContent,
+        clusters: clusterResult.clusters,
+        meta: {
+          appName,
+          vendorNamespace,
+          extractedAt: findingsFile.extractedAt,
+          repoPath: findingsFile.targetRepo,
+        },
+      },
+      { outputDir },
+    );
+    console.log(`  Wrote preview to ${previewPath}`);
+  } catch (err) {
+    console.warn(
+      `  Warning: preview.html emit failed (${err instanceof Error ? err.message : String(err)})`,
+    );
+  }
 
   // === Stage 7b: Snapshot tokens.json ===
   const previousDir = path.join(outputDir, ".tokextract", "previous");
