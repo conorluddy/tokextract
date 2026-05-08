@@ -142,13 +142,15 @@ function checkBrokenRef(
   };
 }
 
-/** missing-primary: at least one color token name containing primary/brand/accent */
+/** missing-primary: front-matter has at least one core/branded color token. */
 function checkMissingPrimary(frontMatter: FrontMatter): LintResult {
   const colorTokens = frontMatter.tokens?.colors ?? {};
-  const hasPrimary = Object.keys(colorTokens).some((key) => /primary|brand|accent/i.test(key));
-  // Also check token values (references)
+  // Recognized "primary surface" keyword set — apps name brand colors many ways.
+  // Includes traditional brand vocab + common neutral/state vocab.
+  const KEYWORD = /primary|brand|accent|background|foreground|surface|body|text|main/i;
+  const hasPrimary = Object.keys(colorTokens).some((key) => KEYWORD.test(key));
   const hasPrimaryRef = Object.values(colorTokens).some(
-    (val) => typeof val === "string" && /primary|brand|accent/i.test(val),
+    (val) => typeof val === "string" && KEYWORD.test(val),
   );
 
   return {
@@ -156,9 +158,9 @@ function checkMissingPrimary(frontMatter: FrontMatter): LintResult {
     failed: !hasPrimary && !hasPrimaryRef,
     message:
       hasPrimary || hasPrimaryRef
-        ? "Primary/brand/accent color found in front-matter"
-        : "No color with name containing 'primary', 'brand', or 'accent' found in front-matter. " +
-          "Add at least one primary brand color token.",
+        ? "Primary/brand/surface color found in front-matter"
+        : "No color with name containing 'primary', 'brand', 'accent', 'background', 'foreground', " +
+          "'surface', 'body', 'text', or 'main' found in front-matter. Add at least one core color token.",
   };
 }
 

@@ -63,6 +63,10 @@ export function extractTypography(source: string, filePath: string, tree?: Tree)
   // Pass 5: `.font(.identifier)` shorthand call sites (analogous to color's pass 5)
   findings.push(...extractImplicitFontCallSites(source, relativePath));
 
+  // Pass 6: `enum X { static let *Name = "FontName" }` — abstraction-layer font name registry.
+  // Common in multi-target apps that wrap Font.custom in helper APIs (e.g. Ocras's WidgetFont).
+  findings.push(...extractFontEnumStaticLets(source, relativePath));
+
   return findings;
 }
 
@@ -272,6 +276,92 @@ function extractFontEnumCases(source: string, filePath: string): RawFinding[] {
         inFontEnum = false;
         enumName = "";
       }
+    }
+  }
+
+  return findings;
+}
+
+/**
+ * Extract `enum X { static let *Name = "FontPostScriptName" }` patterns.
+ *
+ * Used by abstraction-layer typography systems that don't expose `Font.custom`
+ * directly to consumers. Example (from Ocras's FastingKit):
+ *
+ *   public enum WidgetFont {
+ *     public static let heroDisplayName = "SpaceGrotesk-Bold"
+ *     public static let bodyName        = "SpaceGrotesk-Medium"
+ *   }
+ *
+ * Heuristic: only trigger inside enums whose body contains at least one static let
+ * whose string value matches a PostScript-style font name (Word-Suffix pattern).
+ * Avoids false positives on unrelated string-typed static lets.
+ */
+function extractFontEnumStaticLets(source: string, filePath: string): RawFinding[] {
+  const findings: RawFinding[] = [];
+  const lines = source.split("\n");
+
+  let inFontEnum = false;
+  let enumName = "";
+  let braceDepth = 0;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i] ?? "";
+
+    if (!inFontEnum) {
+      // Match `enum X {` or `public enum X {` (no String inheritance — those are Pass 3)
+      const enumStart = /^\s*(?:public\s+|internal\s+|fileprivate\s+|private\s+)?enum\s+(\w+)\s*(?:\{|$)/.exec(
+        line,
+      );
+      if (enumStart && !line.includes(":")) {
+        // Lookahead: any static let inside whose value has PostScript-name shape (Word-Suffix)?
+        const lookaheadBlock = lines.slice(i, i + 30).join("\n");
+        if (/static\s+let\s+\w+\s*=\s*"[A-Za-z]+-[A-Za-z]/.test(lookaheadBlock)) {
+          inFontEnum = true;
+          enumName = enumStart[1] ?? "";
+          braceDepth = (line.match(/{/g) ?? []).length;
+        }
+      }
+      continue;
+    }
+
+    braceDepth += (line.match(/{/g) ?? []).length;
+    braceDepth -= (line.match(/}/g) ?? []).length;
+
+    const letMatch =
+      /^\s*(?:public\s+|internal\s+|fileprivate\s+|private\s+)?static\s+let\s+(\w+)\s*(?::\s*String\s*)?=\s*"([^"]+)"/.exec(
+        line,
+      );
+    if (letMatch) {
+      const letName = letMatch[1] ?? "";
+      const fontPostScriptName = letMatch[2] ?? "";
+      // Only emit if the value really looks like a font name (Word-Suffix)
+      if (/^[A-Za-z]+-[A-Za-z]/.test(fontPostScriptName)) {
+        const fontWeight = inferFontWeight(fontPostScriptName);
+        findings.push({
+          category: "typography",
+          sourcePath: filePath,
+          line: i + 1,
+          col: line.indexOf("static"),
+          declName: `${enumName}.${letName}`,
+          rawValue: `static let ${letName} = "${fontPostScriptName}"`,
+          normalizedValue: {
+            fontFamily: fontPostScriptName,
+            fontSize: null,
+            fontWeight,
+            lineHeight: 1.5,
+            letterSpacing: "0px",
+          },
+          context: `font enum ${enumName} (static let)`,
+          isDeclaration: true,
+          hasDynamicType: false,
+        });
+      }
+    }
+
+    if (braceDepth <= 0) {
+      inFontEnum = false;
+      enumName = "";
     }
   }
 
