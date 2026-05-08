@@ -44,7 +44,7 @@ a { color: inherit; text-decoration: none; }
   color: var(--vt-bg); background: var(--vt-ink);
   padding: 6px 12px; transition: background var(--vt-dur-fast) var(--vt-ease);
 }
-.vt-bar .vt-cta-gh:hover { background: var(--vt-accent); }
+.vt-bar .vt-cta-gh:hover { background: var(--vt-mint); color: var(--vt-ink); }
 
 /* ── Section scaffolding ──────────────────────────────────── */
 .vt-section {
@@ -99,7 +99,7 @@ a { color: inherit; text-decoration: none; }
   font-weight: 600;
   color: var(--vt-ink);
 }
-.vt-hero h1 em { font-style: normal; color: var(--vt-accent); }
+.vt-hero h1 em { font-style: normal; color: var(--vt-mint); }
 .vt-hero p {
   margin-top: var(--vt-s-7, 28px);
   font-size: var(--vt-fs-16);
@@ -141,7 +141,7 @@ a { color: inherit; text-decoration: none; }
   cursor: pointer; letter-spacing: 0.4px;
   transition: background var(--vt-dur-fast) var(--vt-ease);
 }
-.vt-install-copy:hover { background: var(--vt-accent); }
+.vt-install-copy:hover { background: var(--vt-mint); color: var(--vt-ink); }
 .vt-install-aux {
   margin-top: 14px;
   font-family: var(--vt-font-mono); font-size: var(--vt-fs-11);
