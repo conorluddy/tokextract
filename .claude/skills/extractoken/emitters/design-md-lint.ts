@@ -413,7 +413,10 @@ function extractSections(content: string): Map<string, string> {
     const nextMatch = matches[i + 1];
     if (!match) continue;
 
-    const sectionName = match[1]?.trim() ?? "";
+    const rawName = match[1]?.trim() ?? "";
+    // Strip leading numbering ("1. Overview" → "Overview", "1) Overview" → "Overview")
+    // so canonical-section detection works regardless of LLM heading style.
+    const sectionName = rawName.replace(/^\d+[.)]\s+/, "").trim();
     const sectionStart = (match.index ?? 0) + match[0].length;
     const sectionEnd = nextMatch?.index ?? prose.length;
     const sectionContent = prose.slice(sectionStart, sectionEnd).trim();

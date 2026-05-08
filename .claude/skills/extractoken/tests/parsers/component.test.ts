@@ -33,6 +33,7 @@ struct PrimaryButtonStyle: ButtonStyle {
     expect(finding?.isDeclaration).toBe(true);
     expect(finding?.context).toBe("struct ButtonStyle");
     expect(finding?.normalizedValue).toBeNull();
+    expect(finding?.componentConfidence).toBe("high");
 
     const chain = finding?.modifierChain ?? [];
     expect(chain.length).toBeGreaterThanOrEqual(4);
@@ -67,6 +68,7 @@ struct CardModifier: ViewModifier {
 
     expect(finding).toBeDefined();
     expect(finding?.context).toBe("struct ViewModifier");
+    expect(finding?.componentConfidence).toBe("high");
 
     const chain = finding?.modifierChain ?? [];
     expect(chain.length).toBeGreaterThanOrEqual(2);
@@ -98,6 +100,7 @@ struct TappableButtonStyle: PrimitiveButtonStyle {
     expect(finding).toBeDefined();
     expect(finding?.context).toBe("struct PrimitiveButtonStyle");
     expect(finding?.isDeclaration).toBe(true);
+    expect(finding?.componentConfidence).toBe("high");
 
     const chain = finding?.modifierChain ?? [];
     expect(chain.length).toBeGreaterThanOrEqual(2);
@@ -126,6 +129,7 @@ extension View {
     expect(finding?.isDeclaration).toBe(true);
     expect(finding?.context).toBe("extension View func");
     expect(finding?.normalizedValue).toBeNull();
+    expect(finding?.componentConfidence).toBe("high");
     // rawValue captures the modifier(...) call
     expect(finding?.rawValue).toContain("modifier(CardModifier())");
   });
@@ -149,6 +153,7 @@ struct Pill: View {
     expect(finding).toBeDefined();
     expect(finding?.context).toBe("struct View custom");
     expect(finding?.isDeclaration).toBe(true);
+    expect(finding?.componentConfidence).toBe("medium");
 
     const chain = finding?.modifierChain ?? [];
     expect(chain.length).toBeGreaterThanOrEqual(2);
@@ -163,8 +168,10 @@ struct Pill: View {
     expect(background?.args[0]).toBe("Color.brand");
   });
 
-  // === Test 6: Multi-view body emits empty chain — pattern 5 multi-root ===
-  it("emits empty modifierChain for custom View struct with multi-view (HStack) body", () => {
+  // === Test 6: Multi-view body — no name keyword, no init signal → not emitted ===
+  // ProfileRow: "row" is excluded from keywords to avoid gallery/demo screen noise.
+  // Without @Binding or typed init, it's low confidence → dropped in v1.
+  it("does NOT emit ProfileRow: View without name keyword or init signal (row excluded)", () => {
     const source = `
 struct ProfileRow: View {
     var body: some View {
@@ -179,9 +186,7 @@ struct ProfileRow: View {
     const findings = extractComponents(source, FIXTURE_PATH);
     const finding = findings.find((f) => f.declName === "ProfileRow");
 
-    expect(finding).toBeDefined();
-    expect(finding?.context).toBe("struct View custom");
-    expect(finding?.modifierChain).toHaveLength(0);
+    expect(finding).toBeUndefined();
   });
 
   // === Test 7: Modifier chain args — complex nested args ===
@@ -231,9 +236,9 @@ struct FancyButtonStyle: ButtonStyle {
     expect(styleFindings[0]?.modifierChain?.find((m) => m.name === "padding")).toBeDefined();
   });
 
-  // === Test 9 (NEGATIVE): Plain struct Foo: View without a single-root body ===
-  // A view that uses VStack root should still be extracted but with empty chain
-  it("does NOT emit modifier chain for VStack-rooted custom View struct", () => {
+  // === Test 9 (NEGATIVE): Low-confidence custom View struct — not emitted in v1 ===
+  // LoginScreen has no component keyword, no @Binding, no typed init → low confidence → dropped
+  it("does NOT emit LoginScreen: custom View struct without name match or init signal", () => {
     const source = `
 struct LoginScreen: View {
     var body: some View {
@@ -247,8 +252,7 @@ struct LoginScreen: View {
     const findings = extractComponents(source, FIXTURE_PATH);
     const finding = findings.find((f) => f.declName === "LoginScreen");
 
-    expect(finding).toBeDefined();
-    expect(finding?.modifierChain).toHaveLength(0);
+    expect(finding).toBeUndefined();
   });
 
   // === Test 10 (NEGATIVE): Unrelated type — struct conforming to non-component protocol ===
@@ -313,5 +317,147 @@ struct TagLabel: ButtonStyle {
 
     expect(finding).toBeDefined();
     expect(finding?.line).toBe(3);
+  });
+
+  // === Test 14 (NEW): medium confidence — name keyword match "Button" ===
+  it("emits medium-confidence finding for CustomButton: View (name keyword match)", () => {
+    const source = `
+struct CustomButton: View {
+    let title: String
+    var body: some View {
+        Text(title)
+            .padding(12)
+            .background(Color.accentColor)
+    }
+}
+`;
+    const findings = extractComponents(source, FIXTURE_PATH);
+    const finding = findings.find((f) => f.declName === "CustomButton");
+
+    expect(finding).toBeDefined();
+    expect(finding?.category).toBe("component");
+    expect(finding?.componentConfidence).toBe("medium");
+    expect(finding?.context).toBe("struct View custom");
+  });
+
+  // === Test 15 (NEW): medium confidence — name keyword match "Avatar" + "Badge" ===
+  it("emits medium-confidence finding for AvatarBadge: View (compound name keyword match)", () => {
+    const source = `
+struct AvatarBadge: View {
+    let count: Int
+    var body: some View {
+        Circle()
+            .frame(width: 20, height: 20)
+            .foregroundColor(.red)
+    }
+}
+`;
+    const findings = extractComponents(source, FIXTURE_PATH);
+    const finding = findings.find((f) => f.declName === "AvatarBadge");
+
+    expect(finding).toBeDefined();
+    expect(finding?.componentConfidence).toBe("medium");
+  });
+
+  // === Test 16 (NEW): medium confidence — @Binding property signal (no name keyword needed) ===
+  // LabeledRow has no component keyword (Row is excluded) but has @Binding → medium
+  it("emits medium-confidence finding for LabeledRow: View with @Binding property", () => {
+    const source = `
+struct LabeledRow: View {
+    @Binding var isExpanded: Bool
+    let label: String
+    var body: some View {
+        HStack {
+            Text(label)
+            Spacer()
+            Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+        }
+    }
+}
+`;
+    const findings = extractComponents(source, FIXTURE_PATH);
+    const finding = findings.find((f) => f.declName === "LabeledRow");
+
+    expect(finding).toBeDefined();
+    expect(finding?.componentConfidence).toBe("medium");
+  });
+
+  // === Test 17 (NEW): medium confidence — @Binding init signal ===
+  it("emits medium-confidence finding for custom View struct with @Binding property", () => {
+    const source = `
+struct ToggleField: View {
+    @Binding var isOn: Bool
+    var body: some View {
+        Toggle("", isOn: $isOn)
+            .padding(8)
+    }
+}
+`;
+    const findings = extractComponents(source, FIXTURE_PATH);
+    const finding = findings.find((f) => f.declName === "ToggleField");
+
+    expect(finding).toBeDefined();
+    expect(finding?.componentConfidence).toBe("medium");
+  });
+
+  // === Test 18 (NEW NEGATIVE): ProfileScreen — no keyword, no binding, no typed init → not emitted ===
+  it("does NOT emit ProfileScreen: custom View without name match or init signal", () => {
+    const source = `
+struct ProfileScreen: View {
+    var body: some View {
+        Text("Profile")
+            .font(.title)
+    }
+}
+`;
+    const findings = extractComponents(source, FIXTURE_PATH);
+    expect(findings.find((f) => f.declName === "ProfileScreen")).toBeUndefined();
+  });
+
+  // === Test 19 (NEW NEGATIVE): DashboardView — VStack body, no name match → not emitted ===
+  it("does NOT emit DashboardView: View with VStack body and no component keyword", () => {
+    const source = `
+struct DashboardView: View {
+    var body: some View {
+        VStack {
+            Text("Dashboard")
+        }
+    }
+}
+`;
+    const findings = extractComponents(source, FIXTURE_PATH);
+    expect(findings.find((f) => f.declName === "DashboardView")).toBeUndefined();
+  });
+
+  // === Test 20 (NEW NEGATIVE): AppEntry — no keyword, no signal → not emitted ===
+  it("does NOT emit AppEntry: View without name match or init signal", () => {
+    const source = `
+struct AppEntry: View {
+    var body: some View {
+        ContentView()
+    }
+}
+`;
+    const findings = extractComponents(source, FIXTURE_PATH);
+    expect(findings.find((f) => f.declName === "AppEntry")).toBeUndefined();
+  });
+
+  // === Test 21 (NEW): medium confidence — configuration.label body signal ===
+  it("emits medium-confidence finding for custom View using configuration.label in body", () => {
+    const source = `
+struct HighlightWrapper: View {
+    let configuration: ButtonStyleConfiguration
+    var body: some View {
+        configuration.label
+            .padding(16)
+            .background(Color.yellow)
+    }
+}
+`;
+    const findings = extractComponents(source, FIXTURE_PATH);
+    const finding = findings.find((f) => f.declName === "HighlightWrapper");
+
+    expect(finding).toBeDefined();
+    expect(finding?.componentConfidence).toBe("medium");
   });
 });

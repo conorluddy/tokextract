@@ -42,6 +42,8 @@ import { extractBundleId } from "./parsers/info-plist.js";
 import { extractShadow } from "./parsers/shadow.js";
 import { extractShape } from "./parsers/shape.js";
 import { extractSpacing } from "./parsers/spacing.js";
+import { parseSource } from "./parsers/swift-ast.js";
+import type { Tree } from "./parsers/swift-ast.js";
 import { extractTheme } from "./parsers/theme.js";
 import type {
   CandidateFile,
@@ -365,6 +367,13 @@ async function runParse(options: ParseOptions): Promise<void> {
     categoryFindings.set(cat, { decls: 0, callSites: 0 });
   }
 
+  // Per-category timing accumulators (ms) — used to surface the next perf bottleneck
+  const categoryTimingMs = new Map<TokenCategory | "parse", number>();
+  categoryTimingMs.set("parse", 0);
+  for (const cat of activeCategories) {
+    categoryTimingMs.set(cat, 0);
+  }
+
   for (const filePath of swiftFiles) {
     let source: string;
     try {
@@ -375,10 +384,32 @@ async function runParse(options: ParseOptions): Promise<void> {
 
     const relativePath = path.relative(repoPath, filePath);
 
-    // Run each active parser
+    // Parse once per file — shared across all 9 category parsers to avoid redundant
+    // tree-sitter parses. This is the primary S3.5 performance win (727 × 9 → 727 parses).
+    let sharedTree: Tree;
+    try {
+      const parseStart = performance.now();
+      sharedTree = parseSource(source);
+      categoryTimingMs.set(
+        "parse",
+        (categoryTimingMs.get("parse") ?? 0) + (performance.now() - parseStart),
+      );
+    } catch {
+      if (verbose) {
+        console.warn(`  Warning: tree-sitter parse failed on ${relativePath} — skipping file`);
+      }
+      continue;
+    }
+
+    // Run each active parser, sharing the pre-parsed tree
     for (const category of activeCategories) {
       try {
-        const findings = runParser(category, source, relativePath);
+        const catStart = performance.now();
+        const findings = runParser(category, source, relativePath, sharedTree);
+        categoryTimingMs.set(
+          category,
+          (categoryTimingMs.get(category) ?? 0) + (performance.now() - catStart),
+        );
         allFindings.push(...findings);
 
         // Track per-category counts for verbose output
@@ -398,6 +429,13 @@ async function runParse(options: ParseOptions): Promise<void> {
         }
       }
     }
+  }
+
+  // Always log the per-category timing breakdown — essential for perf diagnosis
+  console.log("\nStage 2 timing breakdown:");
+  const sortedTimings = [...categoryTimingMs.entries()].sort((a, b) => b[1] - a[1]);
+  for (const [label, ms] of sortedTimings) {
+    console.log(`  ${label}: ${(ms / 1000).toFixed(1)}s`);
   }
 
   // === Stage 2b: Asset Catalog (color only) ===
@@ -991,28 +1029,34 @@ async function runFinalize(options: FinalizeOptions): Promise<void> {
 
 /**
  * Run the appropriate parser for a given category.
+ * Accepts an optional pre-parsed `tree` to avoid redundant tree-sitter parses per file.
  * Returns an empty array for unsupported categories (defensive).
  */
-function runParser(category: TokenCategory, source: string, filePath: string): RawFinding[] {
+function runParser(
+  category: TokenCategory,
+  source: string,
+  filePath: string,
+  tree?: Tree,
+): RawFinding[] {
   switch (category) {
     case "color":
-      return extractColors(source, filePath);
+      return extractColors(source, filePath, tree);
     case "typography":
-      return extractTypography(source, filePath);
+      return extractTypography(source, filePath, tree);
     case "spacing":
-      return extractSpacing(source, filePath);
+      return extractSpacing(source, filePath, tree);
     case "cornerRadius":
-      return extractShape(source, filePath);
+      return extractShape(source, filePath, tree);
     case "shadow":
-      return extractShadow(source, filePath);
+      return extractShadow(source, filePath, tree);
     case "animation":
-      return extractAnimation(source, filePath);
+      return extractAnimation(source, filePath, tree);
     case "component":
-      return extractComponents(source, filePath);
+      return extractComponents(source, filePath, tree);
     case "liquidGlass":
-      return extractGlass(source, filePath);
+      return extractGlass(source, filePath, tree);
     case "theme":
-      return extractTheme(source, filePath);
+      return extractTheme(source, filePath, tree);
     default:
       return [];
   }

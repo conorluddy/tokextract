@@ -33,6 +33,7 @@
 
 import path from "node:path";
 import { getCapture, nodeColumn, nodeLineNumber, parseSource, runQuery } from "./swift-ast.js";
+import type { Tree } from "./swift-ast.js";
 import type { RawFinding } from "./types.js";
 
 // === PUBLIC API ===
@@ -42,16 +43,19 @@ import type { RawFinding } from "./types.js";
  *
  * @param source   Raw Swift source text
  * @param filePath Absolute path — used for provenance in findings
+ * @param tree     Optional pre-parsed tree-sitter Tree. When provided, avoids a redundant
+ *                 parse call. Falls back to parsing `source` if omitted (backward-compat).
  * @returns        Array of RawFinding objects (may be empty)
  */
-export function extractTheme(source: string, filePath: string): RawFinding[] {
+export function extractTheme(source: string, filePath: string, tree?: Tree): RawFinding[] {
+  const sharedTree = tree ?? parseSource(source);
   const relativePath = path.normalize(filePath);
   const findings: RawFinding[] = [];
 
   findings.push(...extractEnvironmentKeyStructs(source, relativePath));
-  findings.push(...extractEnvironmentValuesExtensions(source, relativePath));
+  findings.push(...extractEnvironmentValuesExtensions(sharedTree, relativePath));
   findings.push(...extractEntryMacros(source, relativePath));
-  findings.push(...extractObservableProviders(source, relativePath));
+  findings.push(...extractObservableProviders(sharedTree, relativePath));
 
   return findings;
 }
@@ -155,8 +159,7 @@ function extractEnvironmentKeyStructs(source: string, filePath: string): RawFind
  * property_declaration nodes. Falls back gracefully on query error.
  * We then regex the raw property text to pull keyName from `self[ThemeKey.self]`.
  */
-function extractEnvironmentValuesExtensions(source: string, filePath: string): RawFinding[] {
-  const tree = parseSource(source);
+function extractEnvironmentValuesExtensions(tree: Tree, filePath: string): RawFinding[] {
   const findings: RawFinding[] = [];
 
   // Query: class_declaration named "EnvironmentValues" with property_declaration children.
@@ -309,8 +312,7 @@ function extractEntryMacros(source: string, filePath: string): RawFinding[] {
  *
  * Approach: tree-sitter AST for class with @Observable attribute + property declarations.
  */
-function extractObservableProviders(source: string, filePath: string): RawFinding[] {
-  const tree = parseSource(source);
+function extractObservableProviders(tree: Tree, filePath: string): RawFinding[] {
   const findings: RawFinding[] = [];
 
   // Query for class declarations that have an @Observable attribute.

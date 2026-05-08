@@ -68,6 +68,7 @@ export function emitAuditReport(data: AuditData, options: AuditReportOptions): s
   sections.push(buildOffScaleSection(data.driftByCategory));
   sections.push(buildLiquidGlassSection(data.allFindings));
   sections.push(buildHarmonizationSection(data.colorClusters, data.harmonizeRecommendations));
+  sections.push(buildComponentsSection(data.allFindings));
 
   if (data.diffMarkdown) {
     sections.push(data.diffMarkdown);
@@ -458,6 +459,61 @@ function buildHarmonizationSection(
   }
 
   return rows.join("\n");
+}
+
+function buildComponentsSection(allFindings: readonly RawFinding[]): string {
+  const componentFindings = allFindings.filter(
+    (f) => f.category === "component" && f.isDeclaration,
+  );
+
+  if (componentFindings.length === 0) {
+    return "## 8. Components\n\n_No component declarations detected._";
+  }
+
+  const high = componentFindings.filter((f) => f.componentConfidence === "high");
+  const medium = componentFindings.filter((f) => f.componentConfidence === "medium");
+
+  const lines: string[] = ["## 8. Components"];
+
+  // Strict (high confidence) — ButtonStyle / ViewModifier / PrimitiveButtonStyle + extension View wrappers
+  if (high.length === 0) {
+    lines.push(
+      "\n### Strict (high confidence)\n\n_No ButtonStyle / ViewModifier conformances found._",
+    );
+  } else {
+    lines.push("\n### Strict (high confidence)");
+    lines.push(
+      "_ButtonStyle, ViewModifier, PrimitiveButtonStyle conformances and extension View wrappers._\n",
+    );
+    for (const f of high) {
+      const protocol = f.context ?? "component";
+      lines.push(`- \`${f.declName ?? "unknown"}\` (${protocol}) — \`${f.sourcePath}:${f.line}\``);
+    }
+  }
+
+  // Likely (medium confidence) — name keyword or init signal
+  if (medium.length === 0) {
+    lines.push(
+      "\n### Likely (medium confidence — name/init signal)\n\n_No likely components found._",
+    );
+  } else {
+    lines.push("\n### Likely (medium confidence — name/init signal)");
+    lines.push(
+      "_Custom View structs with a component-keyword name, `configuration.label` body, or `@Binding` / typed init._\n",
+    );
+    for (const f of medium) {
+      lines.push(
+        `- \`${f.declName ?? "unknown"}\` (custom View, name/init match) — \`${f.sourcePath}:${f.line}\``,
+      );
+    }
+    if (medium.length > 50) {
+      lines.push(
+        `\n_Showing all ${medium.length} likely components. Run with \`--include-likely-components\` to also surface low-confidence custom Views._`,
+      );
+    }
+  }
+
+  return lines.join("\n");
 }
 
 // === UTILITIES ===

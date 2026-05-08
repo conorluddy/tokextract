@@ -43,6 +43,7 @@
 
 import path from "node:path";
 import { getCapture, nodeColumn, nodeLineNumber, parseSource, runQuery } from "./swift-ast.js";
+import type { Tree } from "./swift-ast.js";
 import type { RawFinding } from "./types.js";
 
 // === PUBLIC API ===
@@ -52,23 +53,25 @@ import type { RawFinding } from "./types.js";
  *
  * @param source   Raw Swift source text
  * @param filePath Absolute path to the source file — used for provenance in findings
+ * @param tree     Optional pre-parsed tree-sitter Tree. When provided, avoids a redundant
+ *                 parse call. Falls back to parsing `source` if omitted (backward-compat).
  * @returns        Array of RawFinding objects (may be empty)
  */
-export function extractColors(source: string, filePath: string): RawFinding[] {
-  const tree = parseSource(source);
+export function extractColors(source: string, filePath: string, tree?: Tree): RawFinding[] {
+  const sharedTree = tree ?? parseSource(source);
   const relativePath = normalizeFilePath(filePath);
   const findings: RawFinding[] = [];
 
   // Pass 1: Static let declarations inside `extension Color { }` blocks
-  const extensionFindings = extractExtensionColorDeclarations(source, relativePath);
+  const extensionFindings = extractExtensionColorDeclarations(sharedTree, source, relativePath);
   findings.push(...extensionFindings);
 
   // Pass 2: `init(light:dark:)` adaptive color static lets
-  const adaptiveFindings = extractAdaptiveColorDeclarations(source, relativePath);
+  const adaptiveFindings = extractAdaptiveColorDeclarations(sharedTree, relativePath);
   findings.push(...adaptiveFindings);
 
   // Pass 3: Inline @Environment conditional color picks (call sites, not declarations)
-  const envFindings = extractEnvironmentConditionalColors(source, tree, relativePath);
+  const envFindings = extractEnvironmentConditionalColors(source, sharedTree, relativePath);
   findings.push(...envFindings);
 
   // Pass 4: Color(.identifier) — iOS 17+ ColorResource shorthand for Asset Catalog colors
@@ -93,8 +96,11 @@ export function extractColors(source: string, filePath: string): RawFinding[] {
  * Uses the AST query for structured extraction. Falls back to regex on query error
  * so a grammar update doesn't silently drop all color findings.
  */
-function extractExtensionColorDeclarations(source: string, filePath: string): RawFinding[] {
-  const tree = parseSource(source);
+function extractExtensionColorDeclarations(
+  tree: Tree,
+  source: string,
+  filePath: string,
+): RawFinding[] {
   const findings: RawFinding[] = [];
 
   // Query: class_declaration named "Color" with property declarations
@@ -162,8 +168,7 @@ function extractExtensionColorDeclarations(source: string, filePath: string): Ra
  * Extract `static let x = Color(light: ..., dark: ...)` adaptive color declarations.
  * These appear as static lets in a Color extension with the custom init(light:dark:).
  */
-function extractAdaptiveColorDeclarations(source: string, filePath: string): RawFinding[] {
-  const tree = parseSource(source);
+function extractAdaptiveColorDeclarations(tree: Tree, filePath: string): RawFinding[] {
   const findings: RawFinding[] = [];
 
   // Look for Color(light:dark:) call expressions in Color extension declarations

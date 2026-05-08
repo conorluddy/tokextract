@@ -29,6 +29,7 @@
 
 import path from "node:path";
 import { getCapture, nodeColumn, nodeLineNumber, parseSource, runQuery } from "./swift-ast.js";
+import type { Tree } from "./swift-ast.js";
 import type { RawFinding } from "./types.js";
 
 // === PUBLIC API ===
@@ -53,9 +54,12 @@ export interface NormalizedShadow {
  *
  * @param source   Raw Swift source text
  * @param filePath Absolute path — used for provenance in findings
+ * @param tree     Optional pre-parsed tree-sitter Tree. When provided, avoids a redundant
+ *                 parse call. Falls back to parsing `source` if omitted (backward-compat).
  * @returns        Array of RawFinding objects (may be empty)
  */
-export function extractShadow(source: string, filePath: string): RawFinding[] {
+export function extractShadow(source: string, filePath: string, tree?: Tree): RawFinding[] {
+  const sharedTree = tree ?? parseSource(source);
   const relativePath = normalizeFilePath(filePath);
   const findings: RawFinding[] = [];
 
@@ -64,7 +68,7 @@ export function extractShadow(source: string, filePath: string): RawFinding[] {
   findings.push(...callSiteFindings);
 
   // Pass 2: `extension View { func X() -> some View { shadow(...) } }` wrappers
-  const declarationFindings = extractViewExtensionWrappers(source, relativePath);
+  const declarationFindings = extractViewExtensionWrappers(source, relativePath, sharedTree);
   findings.push(...declarationFindings);
 
   return findings;
@@ -162,18 +166,21 @@ function extractCallSites(source: string, filePath: string): RawFinding[] {
  * the inner `shadow(...)` call and the wrapper function name.
  * Falls back to pure regex on query error for resilience.
  */
-function extractViewExtensionWrappers(source: string, filePath: string): RawFinding[] {
+function extractViewExtensionWrappers(source: string, filePath: string, tree: Tree): RawFinding[] {
   // Try AST-assisted extraction first
   try {
-    return extractViewExtensionWrappersViaAst(source, filePath);
+    return extractViewExtensionWrappersViaAst(source, filePath, tree);
   } catch {
     // AST query failed — fall back to full-source regex
     return extractViewExtensionWrappersViaRegex(source, filePath);
   }
 }
 
-function extractViewExtensionWrappersViaAst(source: string, filePath: string): RawFinding[] {
-  const tree = parseSource(source);
+function extractViewExtensionWrappersViaAst(
+  source: string,
+  filePath: string,
+  tree: Tree,
+): RawFinding[] {
   const findings: RawFinding[] = [];
   const lines = source.split("\n");
 

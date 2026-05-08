@@ -28,6 +28,7 @@
 
 import path from "node:path";
 import { getCapture, nodeColumn, nodeLineNumber, parseSource, runQuery } from "./swift-ast.js";
+import type { Tree } from "./swift-ast.js";
 import type { RawFinding } from "./types.js";
 
 // === PUBLIC API ===
@@ -37,14 +38,17 @@ import type { RawFinding } from "./types.js";
  *
  * @param source   Raw Swift source text
  * @param filePath Absolute path to the source file — used for provenance in findings
+ * @param tree     Optional pre-parsed tree-sitter Tree. When provided, avoids a redundant
+ *                 parse call. Falls back to parsing `source` if omitted (backward-compat).
  * @returns        Array of RawFinding objects (may be empty)
  */
-export function extractAnimation(source: string, filePath: string): RawFinding[] {
+export function extractAnimation(source: string, filePath: string, tree?: Tree): RawFinding[] {
+  const sharedTree = tree ?? parseSource(source);
   const relativePath = path.normalize(filePath);
   const findings: RawFinding[] = [];
 
   // Pass 1: static let declarations inside `extension Animation { }` blocks
-  findings.push(...extractAnimationExtensionDeclarations(source, relativePath));
+  findings.push(...extractAnimationExtensionDeclarations(sharedTree, relativePath));
 
   // Pass 2: `.animation(...)` view modifier call sites
   findings.push(...extractAnimationModifierCallSites(source, relativePath));
@@ -84,8 +88,7 @@ interface NormalizedAnimation {
  * Uses AST query for structured extraction. Falls back gracefully on query error.
  * Each `static let` is emitted as a separate declaration finding.
  */
-function extractAnimationExtensionDeclarations(source: string, filePath: string): RawFinding[] {
-  const tree = parseSource(source);
+function extractAnimationExtensionDeclarations(tree: Tree, filePath: string): RawFinding[] {
   const findings: RawFinding[] = [];
 
   // Query: class_declaration named "Animation" with property declarations

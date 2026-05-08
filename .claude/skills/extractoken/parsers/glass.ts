@@ -42,6 +42,7 @@
  */
 
 import path from "node:path";
+import type { Tree } from "./swift-ast.js";
 import type { RawFinding } from "./types.js";
 
 // === PUBLIC API ===
@@ -65,9 +66,11 @@ export interface GlassNormalizedValue {
  *
  * @param source   Raw Swift source text
  * @param filePath Absolute path to the source file — used for provenance in findings
+ * @param _tree    Unused — glass extraction is regex-only. Accepted for API symmetry
+ *                 so callers can pass a shared tree without branching.
  * @returns        Array of RawFinding objects (may be empty)
  */
-export function extractGlass(source: string, filePath: string): RawFinding[] {
+export function extractGlass(source: string, filePath: string, _tree?: Tree): RawFinding[] {
   const relativePath = path.normalize(filePath);
   const findings: RawFinding[] = [];
 

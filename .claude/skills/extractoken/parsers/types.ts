@@ -48,6 +48,17 @@ export interface RawFinding {
   readonly severity?: "info" | "warning" | "error";
   /** requiresSemanticResolution: true for Color(uiColor:) calls */
   readonly requiresSemanticResolution?: boolean;
+  /**
+   * Component parser confidence tier (component findings only).
+   *
+   * - "high"   — ButtonStyle / ViewModifier / PrimitiveButtonStyle conformance, or
+   *              extension View convenience wrapper. Always emitted.
+   * - "medium" — Custom struct View with a name-keyword match (Button, Card, Badge, …)
+   *              or init-signal (typed params / @Binding). Emitted in v1 by default.
+   * - "low"    — Custom struct View without name match or init signal.
+   *              NOT emitted in v1. Available behind --include-likely-components opt-in.
+   */
+  readonly componentConfidence?: "high" | "medium" | "low";
 }
 
 export interface FindingsFile {
