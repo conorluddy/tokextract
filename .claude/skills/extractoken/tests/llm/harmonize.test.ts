@@ -190,6 +190,99 @@ describe("harmonize — prompt size", () => {
   });
 });
 
+describe("harmonize — prompt content and directives", () => {
+  it("prompt contains imperative 'you MUST emit' phrasing", () => {
+    const llmTasks: LlmTask[] = [];
+    const promptPath = writeHarmonizeManifest({
+      outputDir: tmpDir,
+      model: "claude-sonnet-4-6",
+      clusters: makeTypicalClusters(),
+      llmTasks,
+    });
+
+    const content = fs.readFileSync(promptPath, "utf-8");
+    expect(content).toMatch(/you MUST emit/i);
+  });
+
+  it("prompt contains the worked example marker 'near-black-ink'", () => {
+    const llmTasks: LlmTask[] = [];
+    const promptPath = writeHarmonizeManifest({
+      outputDir: tmpDir,
+      model: "claude-sonnet-4-6",
+      clusters: makeTypicalClusters(),
+      llmTasks,
+    });
+
+    const content = fs.readFileSync(promptPath, "utf-8");
+    expect(content).toContain("near-black-ink");
+  });
+
+  it("prompt contains anti-pattern callout about empty array", () => {
+    const llmTasks: LlmTask[] = [];
+    const promptPath = writeHarmonizeManifest({
+      outputDir: tmpDir,
+      model: "claude-sonnet-4-6",
+      clusters: makeTypicalClusters(),
+      llmTasks,
+    });
+
+    const content = fs.readFileSync(promptPath, "utf-8");
+    expect(content).toMatch(/\[\]\` is only correct when every cluster/i);
+  });
+
+  it("prompt contains parameterized expected recommendation count", () => {
+    const llmTasks: LlmTask[] = [];
+    const clusters = makeTypicalClusters(); // 3 clusters → expect 1-2 recommendations
+    const promptPath = writeHarmonizeManifest({
+      outputDir: tmpDir,
+      model: "claude-sonnet-4-6",
+      clusters,
+      llmTasks,
+    });
+
+    const content = fs.readFileSync(promptPath, "utf-8");
+    // Prompt should state the cluster count and expected range
+    expect(content).toContain("3 clusters");
+  });
+
+  it("prompt still ≤5KB on typical (3 clusters) input after rewrite", () => {
+    const llmTasks: LlmTask[] = [];
+    const promptPath = writeHarmonizeManifest({
+      outputDir: tmpDir,
+      model: "claude-sonnet-4-6",
+      clusters: makeTypicalClusters(),
+      llmTasks,
+    });
+
+    const content = fs.readFileSync(promptPath, "utf-8");
+    const sizeBytes = Buffer.byteLength(content, "utf-8");
+    expect(sizeBytes).toBeLessThanOrEqual(5 * 1024);
+  });
+
+  it("handles combined wrapper { colorClusters, numericClusters } without returning empty summaries", () => {
+    const llmTasks: LlmTask[] = [];
+    const combinedClusters = {
+      colorClusters: makeTypicalClusters(),
+      numericClusters: {
+        version: "1.0.0",
+        clusters: [makeCluster("spacing-base", 2)],
+      },
+    };
+
+    const promptPath = writeHarmonizeManifest({
+      outputDir: tmpDir,
+      model: "claude-sonnet-4-6",
+      clusters: combinedClusters,
+      llmTasks,
+    });
+
+    const content = fs.readFileSync(promptPath, "utf-8");
+    // All 4 clusters (3 color + 1 numeric) should appear inlined
+    expect(content).toContain("ink-dark");
+    expect(content).toContain("spacing-base");
+  });
+});
+
 describe("harmonize — output schema validates sample recommendations", () => {
   it("validates a well-formed HarmonizeRecommendation[] against the schema", async () => {
     const schemaPath = path.join(

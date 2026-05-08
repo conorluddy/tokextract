@@ -3,12 +3,16 @@
  *
  * Generates the harmonize prompt file and appends an LlmTask to the manifest.
  *
- * The harmonize pass reviews color clusters from the deterministic analyzer and
- * proposes canonical token names for each cluster of near-duplicate colors.
+ * The harmonize pass reviews color + numeric clusters from the deterministic analyzer
+ * and proposes canonical token names for each near-duplicate cluster.
  *
- * Contract (Slice 1.5):
- * - Inline clusters.json directly (pre-aggregated; typically 5-50 clusters × ≤10 members
+ * Contract (Slice 1.5 / 3.7):
+ * - Inline clusters directly (pre-aggregated; typically 5-50 clusters × ≤10 members
  *   each — stays well under 5KB even on large repos).
+ * - Accepts three input shapes:
+ *     1. Plain array: ColorCluster[]
+ *     2. Wrapped object: { clusters: ColorCluster[] }
+ *     3. Combined wrapper: { colorClusters: <shape1|2>, numericClusters: <shape1|2> }
  * - Subagent writes HarmonizeRecommendation[] to responsePath via the Write tool.
  * - Subagent replies "done" after writing.
  */
@@ -83,82 +87,71 @@ interface HarmonizePromptOptions {
   readonly responsePath: string;
 }
 
+const WORKED_EXAMPLE = `{
+  "clusterID": "near-black-ink",
+  "recommendation": "These three colors are visually indistinguishable (max ΔE 1.8). They are all used as text fill on dark surfaces and are interchangeable. Consolidate to a single token.",
+  "canonicalToken": {
+    "name": "color.semantic.ink-primary",
+    "group": "semantic",
+    "description": "Primary ink color for text on dark surfaces."
+  },
+  "confidence": "high",
+  "sourceRefs": ["Styles/Colors.swift:12", "Views/Dashboard/DashboardView.swift:67", "Components/Card/CardBackground.swift:9"]
+}`;
+
 function buildHarmonizePrompt(opts: HarmonizePromptOptions): string {
   // Slim down clusters to just the fields the LLM needs — strips full RawFinding blobs
   const summaries = buildClusterSummaries(opts.clusters);
+  const clusterCount = summaries.length;
   // Compact JSON — stays well under 5KB for up to 50 clusters
   const clustersJson = JSON.stringify(summaries);
+  const minExpected = Math.floor(clusterCount * 0.5);
+  const maxExpected = Math.floor(clusterCount * 0.85);
 
-  return `# Extractoken — Color Cluster Harmonization
+  return `# Extractoken — Cluster Harmonization
 
-## Your task
+You MUST emit a recommendation for every cluster you would consolidate. For ${clusterCount} clusters, expect ${minExpected}–${maxExpected} recommendations (50–85% yield). Returning \`[]\` is only correct when every cluster's members are intentionally distinct — which is extremely rare on real codebases.
 
-You are reviewing color clusters from a SwiftUI design system. For each cluster of
-near-duplicate colors, propose a canonical token name and explain why.
-
-## Input — color clusters
-
-The following clusters were produced by a CIEDE2000 distance analysis. Each cluster
-contains near-duplicate color values found across the codebase.
+## Input — ${clusterCount} clusters
 
 \`\`\`json
 ${clustersJson}
 \`\`\`
 
-## Output schema
+## Worked example (exact shape required)
 
-Write a JSON array of \`HarmonizeRecommendation\` objects to \`${opts.responsePath}\` using the Write tool.
-Each object must match this shape exactly:
-
-\`\`\`ts
-interface HarmonizeRecommendation {
-  clusterID: string;            // matches a cluster ID from the clusters above
-  recommendation: string;       // 1-2 sentences explaining the consolidation rationale
-  canonicalToken: {
-    name: string;               // e.g. "color.semantic.surface.elevated"
-    group: "primitive" | "semantic" | "component";
-    description: string;        // 1-line intent
-  };
-  confidence: "high" | "medium" | "low";
-  sourceRefs: string[];         // ["fileA:lineN", "fileB:lineM", ...]
-}
+\`\`\`json
+${WORKED_EXAMPLE}
 \`\`\`
 
-## Naming rules
+## Output rules
 
-- Format: \`color.<group>.<kebab-slug>\`
-- Three tiers:
-  - \`primitive\` — raw values with no semantic intent (e.g. \`color.primitive.ink-900\`)
-  - \`semantic\` — intent-driven (e.g. \`color.semantic.surface-elevated\`, \`color.semantic.brand-primary\`)
-  - \`component\` — scoped to a specific UI component (e.g. \`color.component.button-background\`)
-- Use kebab-case segments. No camelCase in the name field.
-- Prefer semantic tier when source names or usage context implies intent.
-- Prefer the most commonly used value as the canonical representative.
+- **clusterID**: matches a cluster id above
+- **recommendation**: 1-2 sentences of consolidation rationale
+- **canonicalToken.name**: \`color.<group>.<kebab-slug>\` — primitive/semantic/component; prefer semantic when name implies intent
+- **canonicalToken.description**: 1-line intent
+- **confidence**:
+  - \`high\`: ΔE=0 or names clearly redundant (e.g. \`GraplaSurface1\` ≡ \`BackgroundLight\`)
+  - \`medium\`: ΔE 1–2.5 with similar intent
+  - \`low\`: visually similar but semantically distinct names
+- **sourceRefs**: cite actual file:line from the cluster data — required, minimum 1
+- Unsure? Use \`confidence: "low"\` — never skip a cluster entirely.
 
-## Confidence guidance
-
-- \`high\`: ≥3 members in cluster; source names consistently imply the same intent
-- \`medium\`: 2 members OR names are ambiguous
-- \`low\`: single outlier or conflicting intent signals
-
-## Important constraints
-
-- Include one entry per cluster — do not skip any cluster.
-- Do NOT invent new hex values or color components.
-- sourceRefs must cite actual source paths + line numbers from the cluster data.
-- Output must be a JSON array (not wrapped in an object).
-- Write the array to \`${opts.responsePath}\` using the Write tool, then reply: done
+Write a JSON array to \`${opts.responsePath}\` using the Write tool, then reply: done
 `;
 }
 
 // === CLUSTER SLIMMER ===
 
 /**
- * Convert raw clusters (ColorCluster[] shape from analyzers/cluster-color.ts) to
- * slim summaries safe to inline in a ≤5KB prompt.
+ * Convert raw clusters to slim summaries safe to inline in a ≤5KB prompt.
+ *
+ * Accepts three input shapes (resilient to analyzer shape changes):
+ *   1. Plain array: ClusterRecord[]
+ *   2. Wrapped object: { clusters: ClusterRecord[] }
+ *   3. Combined wrapper: { colorClusters: <shape1|2>, numericClusters: <shape1|2> }
  *
  * Full RawFinding objects are dropped — only sourcePath:line refs and rawValues are kept.
- * This is resilient to shape changes in the analyzer: unknown fields are ignored.
  */
 interface ClusterRecord {
   clusterId?: unknown;
@@ -179,15 +172,38 @@ interface ClustersWrapper {
   clusters?: unknown;
 }
 
-function buildClusterSummaries(clusters: unknown): ClusterSummary[] {
-  // Support both raw array and wrapped object { clusters: [...] }
-  const wrapper = clusters as ClustersWrapper;
-  const arr = Array.isArray(clusters)
-    ? (clusters as unknown[])
-    : Array.isArray(wrapper.clusters)
-      ? (wrapper.clusters as unknown[])
-      : [];
+interface CombinedClustersWrapper {
+  colorClusters?: unknown;
+  numericClusters?: unknown;
+}
 
+/**
+ * Extract a flat array of ClusterRecord items from any supported input shape.
+ * Handles: plain array, { clusters: [...] }, { colorClusters: ..., numericClusters: ... }.
+ */
+function extractClusterArray(input: unknown): unknown[] {
+  if (Array.isArray(input)) return input as unknown[];
+
+  if (typeof input !== "object" || input === null) return [];
+
+  // Combined wrapper: { colorClusters, numericClusters }
+  const combined = input as CombinedClustersWrapper;
+  if (combined.colorClusters !== undefined || combined.numericClusters !== undefined) {
+    return [
+      ...extractClusterArray(combined.colorClusters),
+      ...extractClusterArray(combined.numericClusters),
+    ];
+  }
+
+  // Single wrapped object: { clusters: [...] }
+  const wrapper = input as ClustersWrapper;
+  if (Array.isArray(wrapper.clusters)) return wrapper.clusters as unknown[];
+
+  return [];
+}
+
+function buildClusterSummaries(clusters: unknown): ClusterSummary[] {
+  const arr = extractClusterArray(clusters);
   if (arr.length === 0) return [];
 
   const summaries: ClusterSummary[] = [];
