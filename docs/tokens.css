@@ -6,8 +6,10 @@
  * ───────────────────────────────────────────────────────────── */
 :root {
   /* ── Palette ─────────────────────────────────────────────── */
-  --vt-bg:        #fffafb;
-  --vt-panel:     #f4eef0;
+  /* Background tinted from --tx-cyan (#75dddd) — high-lightness wash so
+   * the palette identity carries through to the surface itself. */
+  --vt-bg:        #ecfafa;
+  --vt-panel:     #dff4f4;
   --vt-ink:       #131515;
   --vt-ink-soft:  #2b2c28;
   --vt-muted:     #2b2c2899;
