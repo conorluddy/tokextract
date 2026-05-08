@@ -749,7 +749,7 @@ When invoked, run this pipeline. Each step is restartable; if any LLM task fails
 re-running picks up where it left off.
 
 ## 1. Parse + analyze (deterministic)
-Run: `node ~/.claude/skills/tokextract/dist/extract.js parse --path <path> [--output <out>]`
+Run: `node ~/plugins/tokextract/dist/extract.js parse --path <path> [--output <out>]`
 This emits `.tokextract/findings.raw.json` and writes prompt files +
 `.tokextract/llm-tasks.json` for the LLM passes.
 
@@ -768,7 +768,7 @@ message. Tasks within a single pass (all normalize tasks) are independent. Harmo
 narrate depend on normalize completing.
 
 ## 3. Emit final artifacts (deterministic)
-Run: `node ~/.claude/skills/tokextract/dist/extract.js emit --output <out>`
+Run: `node ~/plugins/tokextract/dist/extract.js emit --output <out>`
 This consumes LLM responses, validates against DTCG 2025.10, and writes
 `tokens.json`, `audit.md`. It also writes `narrate-context.md` if narrate hasn't run.
 
@@ -778,7 +778,7 @@ spawn one more subagent with task.recommendedModel against narrate-context.md,
 with the instruction to Write `<out>/DESIGN.md` directly.
 
 ## 5. Finalize
-Run: `node ~/.claude/skills/tokextract/dist/extract.js finalize --output <out>`
+Run: `node ~/plugins/tokextract/dist/extract.js finalize --output <out>`
 This runs the DESIGN.md lint pass and prints a summary.
 ```
 
@@ -801,7 +801,7 @@ Implications:
 | Model strategy | Tiered per pass: Haiku for normalize, Sonnet for harmonize, Sonnet for narrate. Override via `--model-normalize`, `--model-harmonize`, `--model-narrate`. The recommended model is written into `llm-tasks.json` for `SKILL.md` to honor when spawning subagents. |
 | Test runner | Vitest |
 | Linter | Biome |
-| Distribution | Single Node helper bundle + `SKILL.md` + `schemas/dtcg-2025.10.json`, installed under `~/.claude/skills/tokextract/` for v1. |
+| Distribution | Single Node helper bundle + `SKILL.md` + `schemas/dtcg-2025.10.json`, installed under `~/plugins/tokextract/` for v1. |
 
 The tree-sitter-swift tradeoff is accepted explicitly: roughly a 5% miss rate on unusual Swift syntax in exchange for zero installation friction. Source locations are always preserved so users can verify anything flagged.
 
@@ -1082,7 +1082,7 @@ Every LLM-derived suggestion carries: source `file:line` references for every in
 - **Model strategy** → Tiered defaults per pass: Haiku for normalize, Sonnet for harmonize, Sonnet for narrate. Override via `--model-normalize`, `--model-harmonize`, `--model-narrate`. (See §8.2, §8.5.)
 - **`--no-llm` DESIGN.md behavior** → Emit a deterministic stub with token inventory and `generated: deterministic` marker. Lint rules still pass. (See §9.5.)
 - **SwiftUI version detection** → Hybrid: implicit detection from `Package.swift` `platforms` and/or `.xcodeproj` `IPHONEOS_DEPLOYMENT_TARGET`; `--target-os` flag overrides; conservative fallback iOS 17 (no Liquid Glass, no `@Entry`). (See §8.5.)
-- **Distribution** → Personal-use under `~/.claude/skills/tokextract/` for v1. Marketplace promotion only after ≥2 fixtures pass. (See §8.2.)
+- **Distribution** → Personal-use under `~/plugins/tokextract/` for v1. Marketplace promotion only after ≥2 fixtures pass. (See §8.2.)
 - **`findings.raw.json` stability contract** → Internal artifact in v1. Path and purpose documented in README; no published JSON Schema, no stability guarantee. Promote to public contract only if v3 MCP server materializes.
 - **Cross-module orphan detection** → Walk all `.swift` files under `--path` as a union (no SPM target awareness in v1). Every orphan finding is tagged with `crossModuleConfidence: low`. SPM target graph awareness lands in v2.
 

@@ -30,7 +30,7 @@ re-running picks up where it left off (`findings.raw.json` is durable).
 ### Step 1 — Parse + analyze (deterministic)
 
 ```bash
-node /Users/conor/Development/Extoken/.claude/skills/tokextract/dist/extract.js parse \
+node ${CLAUDE_PLUGIN_ROOT}/dist/extract.js parse \
   --path <path> \
   --output <out> \
   [--no-llm] \
@@ -76,7 +76,7 @@ After all tasks complete, verify each `task.responsePath` exists.
 ### Step 3 — Plan harmonize (skip if --no-llm)
 
 ```bash
-node /Users/conor/Development/Extoken/.claude/skills/tokextract/dist/extract.js plan-harmonize \
+node ${CLAUDE_PLUGIN_ROOT}/dist/extract.js plan-harmonize \
   --output <out> \
   [--model-harmonize claude-sonnet-4-6]
 ```
@@ -94,7 +94,7 @@ The subagent writes `<out>/.tokextract/llm-out/mapping.harmonize.json` directly 
 ### Step 5 — Emit final artifacts (deterministic)
 
 ```bash
-node /Users/conor/Development/Extoken/.claude/skills/tokextract/dist/extract.js emit \
+node ${CLAUDE_PLUGIN_ROOT}/dist/extract.js emit \
   --output <out> \
   [--no-llm]
 ```
@@ -110,7 +110,7 @@ This:
 ### Step 6 — Plan narrate (skip if --no-llm)
 
 ```bash
-node /Users/conor/Development/Extoken/.claude/skills/tokextract/dist/extract.js plan-narrate \
+node ${CLAUDE_PLUGIN_ROOT}/dist/extract.js plan-narrate \
   --output <out> \
   [--model-narrate claude-sonnet-4-6]
 ```
@@ -128,7 +128,7 @@ This is the highest-leverage LLM step — the subagent generates the full brand 
 ### Step 8 — Finalize
 
 ```bash
-node /Users/conor/Development/Extoken/.claude/skills/tokextract/dist/extract.js finalize \
+node ${CLAUDE_PLUGIN_ROOT}/dist/extract.js finalize \
   --output <out> \
   [--no-llm]
 ```
@@ -204,10 +204,24 @@ Prints a summary of what was extracted.
 
 ## Installation
 
-This skill is installed at `/Users/conor/Development/Extoken/.claude/skills/tokextract/`. Build before use:
+This is a Claude Code plugin distributed through the `conorluddy` marketplace. To install:
 
 ```bash
-cd /Users/conor/Development/Extoken/.claude/skills/tokextract
+# Add the marketplace (one-time):
+/plugin marketplace add /Users/conor/Development/Extoken
+
+# Install the plugin:
+/plugin install tokextract@conorluddy
+```
+
+The plugin is shipped pre-built — no `npm install` step required at install time.
+
+For local development (modifying the plugin source), build from the source repo:
+
+```bash
+cd /Users/conor/Development/Extoken/plugins/tokextract
 npm install
 npm run build
 ```
+
+After rebuilding, refresh the installed plugin: `/plugin marketplace update conorluddy`.

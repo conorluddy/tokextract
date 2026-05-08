@@ -2,14 +2,11 @@
 *.swp
 *.swo
 
-# Skill build artifacts
-.claude/skills/*/node_modules/
-.claude/skills/*/dist/
-.claude/skills/*/*.js.map
-.claude/skills/*/*.d.ts.map
+# Plugin build artifacts (per-plugin under plugins/<name>/)
+plugins/*/node_modules/
+plugins/*/dist/
+plugins/*/*.js.map
+plugins/*/*.d.ts.map
 
-# Skill runtime state (created when tokextract runs)
-.claude/skills/*/.tokextract/
-
-# Claude Code runtime artifacts
-.claude/scheduled_tasks.lock
+# Plugin runtime state (created when tokextract runs)
+plugins/*/.tokextract/

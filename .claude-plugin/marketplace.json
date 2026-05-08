@@ -1,0 +1,32 @@
+{
+  "name": "conorluddy",
+  "owner": {
+    "name": "Conor Luddy",
+    "email": "conorluddy@gmail.com"
+  },
+  "description": "Conor Luddy's Claude Code plugin marketplace. Indie developer tools across iOS / SwiftUI / design systems.",
+  "metadata": {
+    "pluginRoot": "./plugins"
+  },
+  "plugins": [
+    {
+      "name": "tokextract",
+      "source": "./plugins/tokextract",
+      "description": "Reverse-engineer a SwiftUI app's design system into DTCG tokens, brand-narrative DESIGN.md, and an audit report.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Conor Luddy",
+        "email": "conorluddy@gmail.com"
+      },
+      "license": "MIT",
+      "keywords": [
+        "swiftui",
+        "design-tokens",
+        "dtcg",
+        "design-system",
+        "ios"
+      ],
+      "category": "design-systems"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "name": "tokextract",
+  "description": "Reverse-engineer a SwiftUI app's design system into DTCG tokens, brand-narrative DESIGN.md, and an audit report.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Conor Luddy",
+    "email": "conorluddy@gmail.com"
+  },
+  "license": "MIT",
+  "keywords": ["swiftui", "design-tokens", "dtcg", "design-system", "ios", "extraction", "audit"]
+}
