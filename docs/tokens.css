@@ -6,38 +6,40 @@
  * ───────────────────────────────────────────────────────────── */
 :root {
   /* ── Palette ─────────────────────────────────────────────── */
-  /* Background tinted from --tx-cyan (#75dddd) — high-lightness wash so
-   * the palette identity carries through to the surface itself. */
-  --vt-bg:        #ecfafa;
-  --vt-panel:     #dff4f4;
-  --vt-ink:       #131515;
-  --vt-ink-soft:  #2b2c28;
-  --vt-muted:     #2b2c2899;
-  --vt-faint:     #2b2c2855;
-  --vt-rule:      #13151522;
-  --vt-rule-hi:   #13151544;
+  /* Tokextract palette: 172121-444554-9e6240-c5d9e2-f2ff49
+   * ink → slate → terracotta → pale blue-gray → yellow-lime */
+  --tx-ink:       #172121;  /* deepest — body text, Mark bg, dark blocks */
+  --tx-slate:     #444554;  /* mid neutral — muted/info */
+  --tx-terracotta:#9e6240;  /* warm accent — links, CTAs, primary chrome */
+  --tx-mist:      #c5d9e2;  /* pale blue-gray — page background */
+  --tx-lime:      #f2ff49;  /* bright pop — Mark logo decorative + warn */
 
-  /* Tokextract palette: 75dddd-84c7d0-9297c4-9368b7-aa3e98
-   * cyan → teal → periwinkle → purple → magenta */
-  --tx-cyan:      #75dddd;  /* lightest pop — Mark logo, decorative */
-  --tx-teal:      #84c7d0;  /* calm secondary — pos/success */
-  --tx-periwinkle:#9297c4;  /* mid neutral cool — info */
-  --tx-purple:    #9368b7;  /* primary action — links, CTAs, accent chrome */
-  --tx-magenta:   #aa3e98;  /* hot attention — warn/highlight */
+  /* Surface */
+  --vt-bg:        var(--tx-mist);
+  --vt-panel:     #b5c9d2;  /* mist shifted ~6% darker — cards inset slightly */
 
-  --vt-accent:    var(--tx-purple);
-  --vt-mint:      var(--tx-cyan);
-  --vt-accent-bg: #9368b71f;  /* purple @ ~12% */
-  --vt-mint-bg:   #75dddd33;  /* cyan @ ~20% */
+  /* Ink */
+  --vt-ink:       var(--tx-ink);
+  --vt-ink-soft:  #2a3535;
+  --vt-muted:     #17212199;
+  --vt-faint:     #17212155;
+  --vt-rule:      #17212122;
+  --vt-rule-hi:   #17212144;
+
+  /* Accent */
+  --vt-accent:    var(--tx-terracotta);
+  --vt-mint:      var(--tx-lime);
+  --vt-accent-bg: #9e62401f;  /* terracotta @ ~12% */
+  --vt-mint-bg:   #f2ff4933;  /* lime @ ~20% */
 
   /* Inverse surface (footer, dark blocks) */
-  --vt-ink-fg:    #fffafb;
-  --vt-ink-mute:  #9a9087;
+  --vt-ink-fg:    var(--tx-mist);
+  --vt-ink-mute:  #8a9498;
 
   /* Status colors mapped from palette */
-  --vt-pos:       var(--tx-teal);
-  --vt-warn:      var(--tx-magenta);
-  --vt-info:      var(--tx-periwinkle);
+  --vt-pos:       var(--tx-terracotta);
+  --vt-warn:      var(--tx-lime);
+  --vt-info:      var(--tx-slate);
 
   /* ── Type ────────────────────────────────────────────────── */
   --vt-font-sans: 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
