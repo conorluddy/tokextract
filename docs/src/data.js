@@ -132,7 +132,7 @@ const TOKEXTRACT = {
 
   footer: {
     maintainer: 'Conor Luddy',
-    email:      'conorluddy@gmail.com',
+    site:       'https://www.conor.fyi',
     github:     'https://github.com/conorluddy',
     license:    'MIT',
   },
