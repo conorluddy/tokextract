@@ -10,3 +10,6 @@ plugins/*/*.d.ts.map
 
 # Plugin runtime state (created when tokextract runs)
 plugins/*/.tokextract/
+
+# Claude Code runtime artifacts
+.claude/
