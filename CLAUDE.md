@@ -2,16 +2,16 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Project: Extractoken
+## Project: Tokextract
 
 **Pre-code.** The repo currently contains only `EXTOKEN.md` — a research/architecture spec. No source, no build system, no tests, not yet a git repo.
 
-**Extractoken** is a **repo-agnostic** Claude Code skill for extracting a design system from any SwiftUI codebase. Note: `EXTOKEN.md` references a Grapla-specific MVP and a `grapla-design-extract` skill name — that framing is **superseded**. Treat Grapla as one test fixture among many, not the target. The skill should accept any Swift/SwiftUI repo path.
+**Tokextract** is a **repo-agnostic** Claude Code skill for extracting a design system from any SwiftUI codebase. Note: `EXTOKEN.md` references a Grapla-specific MVP and a `grapla-design-extract` skill name — that framing is **superseded**. Treat Grapla as one test fixture among many, not the target. The skill should accept any Swift/SwiftUI repo path.
 
 Planned layout:
 
 ```
-extractoken/                  # Claude Code skill, Node/TypeScript
+tokextract/                  # Claude Code skill, Node/TypeScript
 ├── SKILL.md
 ├── extract.ts                # entry, --path <swift-repo>
 ├── parsers/                  # tree-sitter-swift AST walkers per token category

@@ -1,4 +1,4 @@
-# Extractoken — Product Requirements Document
+# Tokextract — Product Requirements Document
 
 **Version:** v1 draft
 **Last updated:** 2026-05-08
@@ -8,11 +8,11 @@
 
 ## 1. Overview
 
-Extractoken is a repo-agnostic Claude Code skill that scans any SwiftUI codebase and reverse-engineers its implicit design system into three artifacts: a W3C DTCG 2025.10-valid `tokens.json` (the canonical machine-truth source), a Google `DESIGN.md` (an LLM-readable narrative companion sized to live alongside `CLAUDE.md`), and an `audit.md` flagging drift, magic numbers, and near-duplicate values. Every existing token toolchain — Specify, Supernova, Tokens Studio, Penpot — runs Figma-to-code; Extractoken runs the opposite direction, making it the first tool that treats Swift source as the source of truth.
+Tokextract is a repo-agnostic Claude Code skill that scans any SwiftUI codebase and reverse-engineers its implicit design system into three artifacts: a W3C DTCG 2025.10-valid `tokens.json` (the canonical machine-truth source), a Google `DESIGN.md` (an LLM-readable narrative companion sized to live alongside `CLAUDE.md`), and an `audit.md` flagging drift, magic numbers, and near-duplicate values. Every existing token toolchain — Specify, Supernova, Tokens Studio, Penpot — runs Figma-to-code; Tokextract runs the opposite direction, making it the first tool that treats Swift source as the source of truth.
 
 ## 2. Problem Statement
 
-"Vibe-coded" SwiftUI apps accumulate design debt silently: magic-number padding literals scattered across hundreds of views, near-duplicate hex values that diverge by a single channel byte, ad-hoc `extension Color` declarations that multiply without a naming scheme, and font calls with hardcoded sizes rather than Dynamic Type pairings. No tooling exists to recover a design system from this state. Every major token platform (Specify, Supernova, Tokens Studio, Knapsack, Penpot, zeroheight, the now-archived Diez) extracts tokens *from Figma or Sketch* and emits code — none ingests Swift source. The current solution is a manual design audit by a senior designer: a 1–2 week exercise of opening every screen, cataloguing every value, and reconciling duplicates by hand before a single token can be defined. Extractoken automates that audit, making the recovery path from vibe-coded app to coherent, token-driven codebase a single command.
+"Vibe-coded" SwiftUI apps accumulate design debt silently: magic-number padding literals scattered across hundreds of views, near-duplicate hex values that diverge by a single channel byte, ad-hoc `extension Color` declarations that multiply without a naming scheme, and font calls with hardcoded sizes rather than Dynamic Type pairings. No tooling exists to recover a design system from this state. Every major token platform (Specify, Supernova, Tokens Studio, Knapsack, Penpot, zeroheight, the now-archived Diez) extracts tokens *from Figma or Sketch* and emits code — none ingests Swift source. The current solution is a manual design audit by a senior designer: a 1–2 week exercise of opening every screen, cataloguing every value, and reconciling duplicates by hand before a single token can be defined. Tokextract automates that audit, making the recovery path from vibe-coded app to coherent, token-driven codebase a single command.
 
 ## 3. Goals
 
@@ -40,13 +40,13 @@ Extractoken is a repo-agnostic Claude Code skill that scans any SwiftUI codebase
 
 **Conor — Solo indie iOS developer.** Has one or more "vibe-coded" SwiftUI apps where UI decisions accreted over weeks of rapid iteration. Colors are defined inline or scattered across extension files, spacing is mostly magic numbers, typography works but was never systematized. Wants a design system to exist retroactively — not to slow down future work, but so future Claude Code sessions can generate brand-correct UI without Conor re-specifying fonts, colors, and spacing every time. Comfortable in the terminal, already runs Claude Code as a daily driver.
 
-**Mara — Design system practitioner / consultant.** Brought in to audit a client's iOS app before a design refresh. Needs to inventory the existing visual language quickly, produce a concrete audit deliverable (what's inconsistent, what's off-brand, what's a near-duplicate), and hand off a token spec the client's engineering team can actually use. Currently does this manually in two to four days; Extractoken compresses that to an hour. The DTCG output goes directly into Style Dictionary; the audit.md becomes the first section of her consulting report.
+**Mara — Design system practitioner / consultant.** Brought in to audit a client's iOS app before a design refresh. Needs to inventory the existing visual language quickly, produce a concrete audit deliverable (what's inconsistent, what's off-brand, what's a near-duplicate), and hand off a token spec the client's engineering team can actually use. Currently does this manually in two to four days; Tokextract compresses that to an hour. The DTCG output goes directly into Style Dictionary; the audit.md becomes the first section of her consulting report.
 
 ### 5.2 Primary User Stories
 
 **Extraction**
 - As Conor, I want to run a single command against any SwiftUI repo, so that I get a full token extraction without setting up tooling or writing parser code myself.
-- As Mara, I want Extractoken to accept an arbitrary `--path` to any Swift repo I don't own, so that I can run it on a client codebase on day one of an engagement without modifying their project.
+- As Mara, I want Tokextract to accept an arbitrary `--path` to any Swift repo I don't own, so that I can run it on a client codebase on day one of an engagement without modifying their project.
 
 **DTCG output**
 - As Conor, I want a DTCG 2025.10-valid `tokens.json` I can pipe directly into Style Dictionary, so that I can generate canonical Swift extensions and verify they match what's already in the app.
@@ -61,7 +61,7 @@ Extractoken is a repo-agnostic Claude Code skill that scans any SwiftUI codebase
 - As Mara, I want the audit to group near-identical values (e.g. three similar dark grays) and propose a single harmonized token for each cluster, so that harmonization recommendations are ready-to-present without further analysis.
 
 **Drift over time**
-- As Conor, I want to re-run Extractoken after a refactor and see a diff against the previous extraction, so that I can confirm my design system is converging rather than accumulating new inconsistencies.
+- As Conor, I want to re-run Tokextract after a refactor and see a diff against the previous extraction, so that I can confirm my design system is converging rather than accumulating new inconsistencies.
 
 **Cross-repo comparison (v3)**
 - As Conor, I want to compare token extractions from two different SwiftUI apps I own (e.g. Grapla and a second app), so that I can identify which tokens are shared and could live in a common design foundation. _(Tracked in §12 as v3 scope; included here for completeness.)_
@@ -72,10 +72,10 @@ Extractoken is a repo-agnostic Claude Code skill that scans any SwiftUI codebase
 
 **Command:**
 ```
-/extractoken --path ./MyApp --output ./design-system
+/tokextract --path ./MyApp --output ./design-system
 ```
 
-**What Extractoken does internally:**
+**What Tokextract does internally:**
 1. Walks all `.swift` files with the tree-sitter-swift AST walker, running each category extractor in parallel (Color, Typography, Spacing, Shape, Shadow, Animation, Components, Liquid Glass).
 2. Reads `.xcassets/*.colorset/Contents.json` for light/dark color pairs; reads `Info.plist` for registered font files.
 3. Runs a regex side-channel pass to build a drift inventory of every numeric literal and hex value used at call sites across the codebase.
@@ -96,17 +96,17 @@ Extractoken is a repo-agnostic Claude Code skill that scans any SwiftUI codebase
 
 **First run:**
 ```
-/extractoken --path ./Grapla --output ./design-system
+/tokextract --path ./Grapla --output ./design-system
 ```
 
 Conor reads `audit.md`. The audit flags four near-duplicate colors in the `#1A1C1E`–`#1B1D1F` range and proposes a single `color.surface.elevated` token. He edits his `Color` extension and inline usages in two view files, replacing all four variants with the proposed token.
 
 **Second run, same output directory:**
 ```
-/extractoken --path ./Grapla --output ./design-system
+/tokextract --path ./Grapla --output ./design-system
 ```
 
-Extractoken detects a previous `tokens.json` in the output directory and emits a diff section at the top of the new `audit.md`: tokens added, tokens removed, values changed. Conor confirms the four near-duplicates have collapsed to one and no new drift was introduced.
+Tokextract detects a previous `tokens.json` in the output directory and emits a diff section at the top of the new `audit.md`: tokens added, tokens removed, values changed. Conor confirms the four near-duplicates have collapsed to one and no new drift was introduced.
 
 **What the user does next:** Commits the updated design-system directory alongside the source changes, creating a verifiable record that the token set and the code are in sync at this point in the repo history.
 
@@ -116,10 +116,10 @@ Extractoken detects a previous `tokens.json` in the output directory and emits a
 
 **Command:**
 ```
-/extractoken --path ./ClientApp --output ./deliverable
+/tokextract --path ./ClientApp --output ./deliverable
 ```
 
-Extractoken produces `deliverable/tokens.json` with full mode support (light/dark color pairs emitted as separate `$value` entries per theme).
+Tokextract produces `deliverable/tokens.json` with full mode support (light/dark color pairs emitted as separate `$value` entries per theme).
 
 **What Mara does next:**
 1. Opens the client's Figma file and installs the **TokensBrücke** plugin (or Tokens Studio if already in use).
@@ -127,7 +127,7 @@ Extractoken produces `deliverable/tokens.json` with full mode support (light/dar
 3. The plugin creates Variable Collections — one Collection per top-level token group (`color`, `typography`, `spacing`, `radius`) — with Modes for `light` and `dark` where applicable.
 4. Mara renames Collections to match the client's Figma conventions and hands off the file.
 
-**Figma Enterprise alternative (v2+):** with `--push-to-figma <file_key>`, Extractoken POSTs directly to the Figma Variables REST API, creating Collections and Variables without the plugin import step.
+**Figma Enterprise alternative (v2+):** with `--push-to-figma <file_key>`, Tokextract POSTs directly to the Figma Variables REST API, creating Collections and Variables without the plugin import step.
 
 ---
 
@@ -423,7 +423,7 @@ interface RawFinding {
 }
 
 interface FindingsFile {
-  extractokenVersion: string;
+  tokextractVersion: string;
   targetRepo: string;
   extractedAt: string;
   findings: RawFinding[];
@@ -434,7 +434,7 @@ interface FindingsFile {
 
 ### 6.12 Candidate Token JSON Shape
 
-The contract between the LLM normalize pass and the DTCG emitter. One file per category, written by the subagent to `.extractoken/llm-out/normalize-<category>.json`.
+The contract between the LLM normalize pass and the DTCG emitter. One file per category, written by the subagent to `.tokextract/llm-out/normalize-<category>.json`.
 
 ```ts
 interface CandidateToken {
@@ -701,7 +701,7 @@ Generated: 2026-05-08 | Source: ./MyApp | Tokens: tokens.json v1.0.0
 ├── tokens.json                      # W3C DTCG 2025.10 — canonical machine truth
 ├── DESIGN.md                        # Google @google/design.md alpha — narrative
 ├── audit.md                         # Drift report
-└── .extractoken/                    # Internal state; safe to delete to force a clean re-run
+└── .tokextract/                    # Internal state; safe to delete to force a clean re-run
     ├── findings.raw.json            # AST + regex extraction, pre-LLM
     ├── llm-tasks.json               # Manifest of pending / done LLM passes
     ├── prompts/
@@ -719,7 +719,7 @@ Generated: 2026-05-08 | Source: ./MyApp | Tokens: tokens.json v1.0.0
         └── tokens.json              # Snapshot of last run, for diff (§8.3)
 ```
 
-All internal state is colocated under `.extractoken/`. Re-runs with adjusted prompts or a different model don't require re-parsing — `findings.raw.json` is durable. Deleting `.extractoken/` forces a full re-extraction.
+All internal state is colocated under `.tokextract/`. Re-runs with adjusted prompts or a different model don't require re-parsing — `findings.raw.json` is durable. Deleting `.tokextract/` forces a full re-extraction.
 
 ---
 
@@ -727,34 +727,34 @@ All internal state is colocated under `.extractoken/`. Re-runs with adjusted pro
 
 ### 8.1 Form Factor
 
-Claude Code skill. Bundled as Node/TypeScript helpers + a `SKILL.md` that orchestrates the host Claude through a multi-step pipeline. Invoked via `/extractoken` or auto-triggered when the user's request matches skill activation phrases.
+Claude Code skill. Bundled as Node/TypeScript helpers + a `SKILL.md` that orchestrates the host Claude through a multi-step pipeline. Invoked via `/tokextract` or auto-triggered when the user's request matches skill activation phrases.
 
-**LLM invocation model: skill emits prompts; host Claude spawns subagents.** The Node helpers handle deterministic work (parsing, clustering, schema validation, emitting). For each LLM pass, the helper writes a self-contained prompt file (e.g. `.extractoken/prompts/normalize-color.md`) and a manifest (`.extractoken/llm-tasks.json`) describing what needs to run, with a recommended model tier per task. `SKILL.md` instructs the host Claude to read the manifest, spawn one subagent per pending task **via the `Agent` tool** (recommendedModel → subagent model; promptPath → subagent prompt; responsePath → subagent's required Write target), and re-run the Node helper once all tasks are `done`. Subagents write their structured JSON output to `responsePath` themselves using the Write tool — the host doesn't proxy the response, which keeps raw findings out of the host context entirely.
+**LLM invocation model: skill emits prompts; host Claude spawns subagents.** The Node helpers handle deterministic work (parsing, clustering, schema validation, emitting). For each LLM pass, the helper writes a self-contained prompt file (e.g. `.tokextract/prompts/normalize-color.md`) and a manifest (`.tokextract/llm-tasks.json`) describing what needs to run, with a recommended model tier per task. `SKILL.md` instructs the host Claude to read the manifest, spawn one subagent per pending task **via the `Agent` tool** (recommendedModel → subagent model; promptPath → subagent prompt; responsePath → subagent's required Write target), and re-run the Node helper once all tasks are `done`. Subagents write their structured JSON output to `responsePath` themselves using the Write tool — the host doesn't proxy the response, which keeps raw findings out of the host context entirely.
 
 **Example `SKILL.md` skeleton:**
 
 ```markdown
 ---
-name: extractoken
+name: tokextract
 description: Extract a design system (DTCG tokens + DESIGN.md + audit) from any SwiftUI codebase
 trigger_phrases:
   - "extract design tokens from this repo"
-  - "run extractoken"
+  - "run tokextract"
   - "audit my SwiftUI design system"
 ---
 
-# Extractoken
+# Tokextract
 
 When invoked, run this pipeline. Each step is restartable; if any LLM task fails,
 re-running picks up where it left off.
 
 ## 1. Parse + analyze (deterministic)
-Run: `node ~/.claude/skills/extractoken/dist/extract.js parse --path <path> [--output <out>]`
-This emits `.extractoken/findings.raw.json` and writes prompt files +
-`.extractoken/llm-tasks.json` for the LLM passes.
+Run: `node ~/.claude/skills/tokextract/dist/extract.js parse --path <path> [--output <out>]`
+This emits `.tokextract/findings.raw.json` and writes prompt files +
+`.tokextract/llm-tasks.json` for the LLM passes.
 
 ## 2. Run pending LLM tasks
-Read `<out>/.extractoken/llm-tasks.json`. For each task with `status: "pending"`,
+Read `<out>/.tokextract/llm-tasks.json`. For each task with `status: "pending"`,
 spawn an Agent subagent with:
   - subagent_type: "general-purpose"
   - model: task.recommendedModel
@@ -768,17 +768,17 @@ message. Tasks within a single pass (all normalize tasks) are independent. Harmo
 narrate depend on normalize completing.
 
 ## 3. Emit final artifacts (deterministic)
-Run: `node ~/.claude/skills/extractoken/dist/extract.js emit --output <out>`
+Run: `node ~/.claude/skills/tokextract/dist/extract.js emit --output <out>`
 This consumes LLM responses, validates against DTCG 2025.10, and writes
 `tokens.json`, `audit.md`. It also writes `narrate-context.md` if narrate hasn't run.
 
 ## 4. Run narrate (if needed)
-If `<out>/.extractoken/llm-tasks.json` shows the narrate task still pending,
+If `<out>/.tokextract/llm-tasks.json` shows the narrate task still pending,
 spawn one more subagent with task.recommendedModel against narrate-context.md,
 with the instruction to Write `<out>/DESIGN.md` directly.
 
 ## 5. Finalize
-Run: `node ~/.claude/skills/extractoken/dist/extract.js finalize --output <out>`
+Run: `node ~/.claude/skills/tokextract/dist/extract.js finalize --output <out>`
 This runs the DESIGN.md lint pass and prints a summary.
 ```
 
@@ -786,7 +786,7 @@ This protocol is the load-bearing contract between the Node helpers and the host
 
 Implications:
 - **No separate API key.** All Claude calls reuse the host session's credentials and quota.
-- **Not standalone.** Extractoken cannot run outside a Claude Code session for full extraction. CI use is supported only via `--no-llm` (deterministic-only output).
+- **Not standalone.** Tokextract cannot run outside a Claude Code session for full extraction. CI use is supported only via `--no-llm` (deterministic-only output).
 - **Restartable.** Each pipeline step is idempotent and writes to disk; if any LLM call fails or the session is interrupted, re-running picks up where it left off.
 - **Inspectable.** Every prompt and every LLM response is persisted, making the run fully auditable.
 
@@ -801,14 +801,14 @@ Implications:
 | Model strategy | Tiered per pass: Haiku for normalize, Sonnet for harmonize, Sonnet for narrate. Override via `--model-normalize`, `--model-harmonize`, `--model-narrate`. The recommended model is written into `llm-tasks.json` for `SKILL.md` to honor when spawning subagents. |
 | Test runner | Vitest |
 | Linter | Biome |
-| Distribution | Single Node helper bundle + `SKILL.md` + `schemas/dtcg-2025.10.json`, installed under `~/.claude/skills/extractoken/` for v1. |
+| Distribution | Single Node helper bundle + `SKILL.md` + `schemas/dtcg-2025.10.json`, installed under `~/.claude/skills/tokextract/` for v1. |
 
 The tree-sitter-swift tradeoff is accepted explicitly: roughly a 5% miss rate on unusual Swift syntax in exchange for zero installation friction. Source locations are always preserved so users can verify anything flagged.
 
 ### 8.3 Module Layout
 
 ```
-extractoken/
+tokextract/
 ├── SKILL.md                     # routing description + body instructions
 ├── package.json
 ├── extract.ts                   # CLI entry; orchestrates pipeline stages
@@ -846,7 +846,7 @@ extractoken/
 
 ### 8.4 Pipeline (Data Flow)
 
-The pipeline alternates between Node helpers (deterministic) and host-Claude steps (LLM). `SKILL.md` is the conductor — it tells Claude to invoke the helper, then run any pending LLM tasks, then invoke the helper again. Each step writes durable state to `<output-dir>/.extractoken/`.
+The pipeline alternates between Node helpers (deterministic) and host-Claude steps (LLM). `SKILL.md` is the conductor — it tells Claude to invoke the helper, then run any pending LLM tasks, then invoke the helper again. Each step writes durable state to `<output-dir>/.tokextract/`.
 
 ```
 [Node]    1. DISCOVERY     walk --path for *.swift + .colorset/Contents.json
@@ -867,14 +867,14 @@ The pipeline alternates between Node helpers (deterministic) and host-Claude ste
 [Claude]  6.  LLM HARMONIZE  spawn Sonnet subagent → write
                               audit-recommendations.json
               ↓
-[Node]    6b. DIFF          if .extractoken/previous/tokens.json exists, structural-diff
+[Node]    6b. DIFF          if .tokextract/previous/tokens.json exists, structural-diff
                               against the new candidate set; produce diff-summary.json
                               for inclusion at the top of audit.md as
                               "## Changes since last extraction"
               ↓
 [Node]    7a. EMIT          merge candidates → tokens.json (Ajv-validated, fail-fast);
                               audit.md from deterministic findings + LLM recs + diff summary;
-                              snapshot the new tokens.json to .extractoken/previous/
+                              snapshot the new tokens.json to .tokextract/previous/
               ↓
 [Node]    7b. EMIT NARRATE PROMPT  prepare narrate-context.md (final tokens +
                                     findings + audit summary)
@@ -890,8 +890,8 @@ Stages 1–4 and 7a, 7b, 8 run without LLM calls. Claude is invoked only in 5b, 
 ### 8.5 CLI / Skill Interface
 
 ```
-extractoken --path <swift-repo>
-            [--output <dir>]            default: <path>/.extractoken/
+tokextract --path <swift-repo>
+            [--output <dir>]            default: <path>/.tokextract/
             [--vendor-namespace <s>]    default: derived from Info.plist bundle ID
             [--target-os <ver>]         default: implicit detect from Package.swift / .xcodeproj;
                                         fallback iOS 17. Gates Liquid Glass (iOS 26) and
@@ -927,7 +927,7 @@ Every flag is repo-agnostic. No project-specific config keys.
 
 **`--watch` mode is v2.** Not exposed in the v1 CLI (removed from this surface; tracked under §12).
 
-**Skill auto-trigger phrases:** "extract design tokens from this repo"; "run extractoken"; "audit my SwiftUI design system"; "what design tokens does this app use"; "recover the design system from this codebase".
+**Skill auto-trigger phrases:** "extract design tokens from this repo"; "run tokextract"; "audit my SwiftUI design system"; "what design tokens does this app use"; "recover the design system from this codebase".
 
 ### 8.6 Repo-Agnosticism Guarantees
 
@@ -943,7 +943,7 @@ Every flag is repo-agnostic. No project-specific config keys.
 
 ### 9.0 Invocation Model
 
-Per §8.1, LLM passes are not direct API calls from the Node helpers. The helpers emit **prompt files** + an **`llm-tasks.json` manifest**; `SKILL.md` instructs the host Claude session to read the manifest and spawn the recommended subagent (model tier + prompt path + expected output path) per task. Claude writes responses back to `<output-dir>/.extractoken/llm-out/` and the next helper stage consumes them.
+Per §8.1, LLM passes are not direct API calls from the Node helpers. The helpers emit **prompt files** + an **`llm-tasks.json` manifest**; `SKILL.md` instructs the host Claude session to read the manifest and spawn the recommended subagent (model tier + prompt path + expected output path) per task. Claude writes responses back to `<output-dir>/.tokextract/llm-out/` and the next helper stage consumes them.
 
 The manifest schema:
 ```ts
@@ -951,8 +951,8 @@ interface LlmTask {
   id: string;                       // e.g. "normalize-color"
   pass: "normalize" | "harmonize" | "narrate" | "self-critique";
   recommendedModel: string;         // e.g. "claude-haiku-4-5"
-  promptPath: string;               // .extractoken/prompts/normalize-color.md
-  responsePath: string;             // .extractoken/llm-out/normalize-color.json
+  promptPath: string;               // .tokextract/prompts/normalize-color.md
+  responsePath: string;             // .tokextract/llm-out/normalize-color.json
   responseSchema: string | null;    // path to JSON Schema for validation, if any
   status: "pending" | "done" | "error";
 }
@@ -1082,7 +1082,7 @@ Every LLM-derived suggestion carries: source `file:line` references for every in
 - **Model strategy** → Tiered defaults per pass: Haiku for normalize, Sonnet for harmonize, Sonnet for narrate. Override via `--model-normalize`, `--model-harmonize`, `--model-narrate`. (See §8.2, §8.5.)
 - **`--no-llm` DESIGN.md behavior** → Emit a deterministic stub with token inventory and `generated: deterministic` marker. Lint rules still pass. (See §9.5.)
 - **SwiftUI version detection** → Hybrid: implicit detection from `Package.swift` `platforms` and/or `.xcodeproj` `IPHONEOS_DEPLOYMENT_TARGET`; `--target-os` flag overrides; conservative fallback iOS 17 (no Liquid Glass, no `@Entry`). (See §8.5.)
-- **Distribution** → Personal-use under `~/.claude/skills/extractoken/` for v1. Marketplace promotion only after ≥2 fixtures pass. (See §8.2.)
+- **Distribution** → Personal-use under `~/.claude/skills/tokextract/` for v1. Marketplace promotion only after ≥2 fixtures pass. (See §8.2.)
 - **`findings.raw.json` stability contract** → Internal artifact in v1. Path and purpose documented in README; no published JSON Schema, no stability guarantee. Promote to public contract only if v3 MCP server materializes.
 - **Cross-module orphan detection** → Walk all `.swift` files under `--path` as a union (no SPM target awareness in v1). Every orphan finding is tagged with `crossModuleConfidence: low`. SPM target graph awareness lands in v2.
 
@@ -1091,9 +1091,9 @@ Every LLM-derived suggestion carries: source `file:line` references for every in
 - **SKILL.md orchestration protocol** → Defined in §8.1 with concrete skeleton. Five-step pipeline: parse → run pending LLM tasks via Agent tool → emit → run narrate → finalize. Independent tasks run in parallel.
 - **Subagent spawn mechanism** → Host Claude's `Agent` tool, one subagent per `LlmTask`. Subagent writes JSON output to `responsePath` directly using its Write tool; host doesn't proxy. (§9.0)
 - **CandidateToken contract** → New §6.12 defines the LLM↔emitter handoff schema with `_provenance`, `_confidence`, `_llmDerived`, `_inferred` metadata stripped before final emit.
-- **Diff module** → Added `analyzers/diff.ts` to §8.3 + a `[Node] DIFF` step (6b) to the pipeline. Snapshot stored at `.extractoken/previous/tokens.json`. Diff summary prepends `## Changes since last extraction` to audit.md.
+- **Diff module** → Added `analyzers/diff.ts` to §8.3 + a `[Node] DIFF` step (6b) to the pipeline. Snapshot stored at `.tokextract/previous/tokens.json`. Diff summary prepends `## Changes since last extraction` to audit.md.
 - **deltaE threshold** → `2.5` canonical, `--delta-e-threshold` override. Audit example aligned.
-- **`findings.raw.json` location** → Moved to `<output-dir>/.extractoken/findings.raw.json` for layout consistency. (§7.4)
+- **`findings.raw.json` location** → Moved to `<output-dir>/.tokextract/findings.raw.json` for layout consistency. (§7.4)
 - **Model IDs** → Defaults updated to current: Haiku 4.5 (`claude-haiku-4-5-20251001`), Sonnet 4.6 (`claude-sonnet-4-6`). Opus 4.7 (`claude-opus-4-7`) available as override. (§8.5)
 - **Large repo policy** → Hard limit at 2000 `.swift` files via `--max-files`; abort with clear error above. v2 will add subagent-per-directory reconciliation. (§9.4, §12)
 - **Font weight inference** → PostScript suffix mapping rules in §6.10. `lineHeight` defaults `1.5`, `letterSpacing` defaults `"0px"` when source-absent.

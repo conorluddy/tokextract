@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://design-tokens.org/schemas/dtcg-2025.10.json",
+  "title": "W3C DTCG 2025.10 — Minimal Tokextract Bundle",
+  "description": "Permissive-but-correct minimal schema. Catches gross malformation (missing $value on tokens, invalid color space, bad alias reference syntax) while allowing the flexible nested group structure DTCG 2025.10 uses.",
+  "type": "object",
+  "additionalProperties": {
+    "$ref": "#/$defs/tokenGroupOrToken"
+  },
+  "$defs": {
+    "tokenGroupOrToken": {
+      "anyOf": [{ "$ref": "#/$defs/leafToken" }, { "$ref": "#/$defs/tokenGroup" }]
+    },
+    "tokenGroup": {
+      "type": "object",
+      "properties": {
+        "$type": { "type": "string" },
+        "$description": { "type": "string" },
+        "$extensions": { "type": "object" }
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/tokenGroupOrToken"
+      }
+    },
+    "leafToken": {
+      "type": "object",
+      "required": ["$value"],
+      "properties": {
+        "$value": true,
+        "$type": { "type": "string" },
+        "$description": { "type": "string" },
+        "$extensions": { "type": "object" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

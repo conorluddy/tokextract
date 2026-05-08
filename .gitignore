@@ -8,8 +8,8 @@
 .claude/skills/*/*.js.map
 .claude/skills/*/*.d.ts.map
 
-# Skill runtime state (created when extractoken runs)
-.claude/skills/*/.extractoken/
+# Skill runtime state (created when tokextract runs)
+.claude/skills/*/.tokextract/
 
 # Claude Code runtime artifacts
 .claude/scheduled_tasks.lock

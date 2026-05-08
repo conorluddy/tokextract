@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tokextract/schemas/harmonize-recommendations.json",
+  "title": "Tokextract HarmonizeRecommendation[]",
+  "description": "LLM harmonize pass output — one entry per near-duplicate color cluster. Node helper merges with audit.md.",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["clusterID", "recommendation", "canonicalToken", "confidence", "sourceRefs"],
+    "additionalProperties": false,
+    "properties": {
+      "clusterID": {
+        "type": "string",
+        "description": "Matches a cluster ID from clusters.json"
+      },
+      "recommendation": {
+        "type": "string",
+        "minLength": 1,
+        "description": "1-2 sentences explaining the consolidation rationale"
+      },
+      "canonicalToken": {
+        "type": "object",
+        "required": ["name", "group", "description"],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9]*\\.[a-z][a-z0-9]*\\.[a-z][a-z0-9-]*(\\.[a-z][a-z0-9-]*)*$",
+            "description": "Canonical token name, e.g. 'color.semantic.surface.elevated'"
+          },
+          "group": {
+            "type": "string",
+            "enum": ["primitive", "semantic", "component"],
+            "description": "Token tier in the three-level hierarchy"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "description": "1-line intent description"
+          }
+        }
+      },
+      "confidence": {
+        "type": "string",
+        "enum": ["high", "medium", "low"],
+        "description": "LLM confidence: high=≥3 coherent members, medium=2 or ambiguous, low=single outlier"
+      },
+      "sourceRefs": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "description": "Source reference in 'filePath:lineN' format"
+        },
+        "minItems": 1,
+        "description": "Source file + line references for each cluster member"
+      }
+    }
+  }
+}

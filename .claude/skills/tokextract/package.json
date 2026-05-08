@@ -1,0 +1,36 @@
+{
+  "name": "tokextract",
+  "version": "1.0.0",
+  "description": "Extract a design system (DTCG tokens + DESIGN.md + audit) from any SwiftUI codebase",
+  "type": "module",
+  "main": "dist/extract.js",
+  "bin": {
+    "tokextract": "dist/extract.js"
+  },
+  "scripts": {
+    "build": "tsc && cp -r schemas dist/",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "biome check .",
+    "lint:fix": "biome check --apply .",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "commander": "^12.1.0",
+    "delta-e": "^0.0.8",
+    "fast-glob": "^3.3.2",
+    "tree-sitter": "^0.22.4",
+    "tree-sitter-swift": "^0.7.1"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

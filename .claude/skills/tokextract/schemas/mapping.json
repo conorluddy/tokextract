@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://tokextract/schemas/mapping.json",
+  "title": "Tokextract Mapping[]",
+  "description": "Slim LLM output — one entry per declaration finding. Node helper joins with findings to produce CandidateFile.",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["declName", "sourcePath", "name", "group", "confidence"],
+    "additionalProperties": false,
+    "properties": {
+      "declName": {
+        "type": "string",
+        "description": "Join key: must match a RawFinding.declName"
+      },
+      "sourcePath": {
+        "type": "string",
+        "description": "Disambiguator: must match RawFinding.sourcePath"
+      },
+      "name": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9]*\\.[a-z][a-z0-9]*\\.[a-z][a-z0-9-]*$",
+        "description": "Canonical token name, e.g. 'color.semantic.brand-primary'"
+      },
+      "group": {
+        "type": "string",
+        "enum": ["primitive", "semantic", "component"],
+        "description": "Token tier in the three-level hierarchy"
+      },
+      "description": {
+        "type": "string",
+        "description": "Optional 1-line intent description"
+      },
+      "aliasOf": {
+        "type": "string",
+        "description": "If semantic, the primitive token name this aliases"
+      },
+      "confidence": {
+        "type": "string",
+        "enum": ["high", "medium", "low"],
+        "description": "LLM confidence in the proposed name"
+      }
+    }
+  }
+}
