@@ -15,8 +15,6 @@ function Bar() {
         <Mark size={20} />
         <span className="vt-brand-name">{meta.name.toUpperCase()}</span>
         <span className="vt-brand-meta">{meta.version}</span>
-        <span className="vt-brand-meta">·</span>
-        <span className="vt-brand-meta">{meta.tag}</span>
       </div>
       <nav className="vt-bar-r">
         <a href="#what">what</a>
