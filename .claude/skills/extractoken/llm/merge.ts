@@ -44,6 +44,39 @@ export function mergeMappings(
 }
 
 /**
+ * Load harmonize recommendations from mapping.harmonize.json if present.
+ * Returns an empty array if the file doesn't exist or can't be parsed.
+ *
+ * @param llmOutDir  Path to .extractoken/llm-out/
+ */
+export function loadHarmonizeRecommendations(llmOutDir: string): HarmonizeRecommendation[] {
+  const harmonizePath = path.join(llmOutDir, "mapping.harmonize.json");
+  if (!fs.existsSync(harmonizePath)) return [];
+
+  try {
+    const content = fs.readFileSync(harmonizePath, "utf-8");
+    const parsed = JSON.parse(content) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed as HarmonizeRecommendation[];
+  } catch {
+    return [];
+  }
+}
+
+/** HarmonizeRecommendation as emitted by the harmonize subagent */
+export interface HarmonizeRecommendation {
+  readonly clusterID: string;
+  readonly recommendation: string;
+  readonly canonicalToken: {
+    readonly name: string;
+    readonly group: "primitive" | "semantic" | "component";
+    readonly description: string;
+  };
+  readonly confidence: "high" | "medium" | "low";
+  readonly sourceRefs: readonly string[];
+}
+
+/**
  * Build a CandidateFile from findings + pre-loaded Mapping[].
  * Exported for unit testing without touching the filesystem.
  */

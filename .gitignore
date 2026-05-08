@@ -10,3 +10,6 @@
 
 # Skill runtime state (created when extractoken runs)
 .claude/skills/*/.extractoken/
+
+# Claude Code runtime artifacts
+.claude/scheduled_tasks.lock

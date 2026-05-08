@@ -9,7 +9,21 @@
  * Schema validation via Ajv runs before writing — a validation failure is a
  * hard error (fail-fast per PRD §7.1).
  *
- * Slice 1: color only. Slice 3 extends this to all categories.
+ * Slice 3: all 9 categories. Each category has a dedicated builder for --no-llm
+ * mechanical candidates. The emitter itself is generic — it just flattens
+ * CandidateFile.candidates into the DTCG tree.
+ *
+ * Per-category DTCG type mapping (PRD §7 table):
+ * - color       → $type: "color"           — NormalizedColor → {colorSpace, components}
+ * - typography  → $type: "typography"      — composite with fontFamily, fontSize, etc.
+ *                                            + $extensions.swiftui.relativeTo
+ * - spacing     → $type: "dimension"       — pixel number
+ * - cornerRadius→ $type: "dimension"       — pixel number; + $extensions.swiftui.style
+ * - shadow      → $type: "shadow"          — DTCG composite (color, offsetX, offsetY, blur, spread)
+ * - animation   → $type: "duration"        — via $extensions.motion (DTCG motion draft)
+ * - component   → $type: "custom"          — $extensions.swiftui.modifierChain
+ * - liquidGlass → $type: "custom"          — $extensions.<vendor>.material
+ * - theme       → $type: "custom"          — $extensions.<vendor>.theme
  */
 
 import fs from "node:fs";
@@ -30,6 +44,8 @@ import type { CandidateFile, CandidateToken } from "../parsers/types.js";
 export interface EmitDtcgOptions {
   readonly outputDir: string;
   readonly schemaPath: string;
+  /** Vendor namespace for $extensions.<vendor>.* keys (from Info.plist or fallback) */
+  readonly vendorNamespace?: string;
 }
 
 export interface EmitDtcgResult {
@@ -304,4 +320,310 @@ function buildMechanicalTokenName(finding: import("../parsers/types.js").RawFind
   }
 
   return `color.unknown-${finding.line}`;
+}
+
+// === MULTI-CATEGORY MECHANICAL CANDIDATES (T3.4) ===
+
+/**
+ * Build mechanical CandidateFile[] for all categories in --no-llm mode.
+ * Returns one CandidateFile per category that has at least one declaration finding.
+ * vendorNamespace is used for $extensions.<vendor>.* keys on glass, animation, component, theme.
+ */
+export function buildMechanicalCandidates(
+  findings: readonly import("../parsers/types.js").RawFinding[],
+  vendorNamespace = "com.unknown",
+): CandidateFile[] {
+  const categories: import("../parsers/types.js").TokenCategory[] = [
+    "color",
+    "typography",
+    "spacing",
+    "cornerRadius",
+    "shadow",
+    "animation",
+    "component",
+    "liquidGlass",
+    "theme",
+  ];
+
+  const result: CandidateFile[] = [];
+
+  for (const category of categories) {
+    const categoryFindings = findings.filter((f) => f.category === category && f.isDeclaration);
+    if (categoryFindings.length === 0) continue;
+
+    const file = buildCategoryMechanicalFile(categoryFindings, category, vendorNamespace);
+    result.push(file);
+  }
+
+  return result;
+}
+
+/**
+ * Build a mechanical CandidateFile for a single category.
+ */
+function buildCategoryMechanicalFile(
+  findings: readonly import("../parsers/types.js").RawFinding[],
+  category: import("../parsers/types.js").TokenCategory,
+  vendorNamespace: string,
+): CandidateFile {
+  if (category === "color") {
+    return buildMechanicalColorCandidates(findings);
+  }
+
+  const candidates: CandidateToken[] = [];
+  const unresolved: CandidateFile["unresolved"][number][] = [];
+  const seen = new Set<string>();
+
+  for (const finding of findings) {
+    if (finding.normalizedValue === null || finding.normalizedValue === undefined) {
+      if (finding.declName !== null) {
+        // Produce a best-effort token with null value marker
+        unresolved.push({
+          rawValue: finding.rawValue,
+          sourcePath: finding.sourcePath,
+          line: finding.line,
+          reason: "normalizedValue unavailable — needs LLM pass",
+        });
+      }
+      continue;
+    }
+
+    const tokenName = buildCategoryMechanicalName(finding, category);
+    if (seen.has(tokenName)) continue;
+    seen.add(tokenName);
+
+    const candidate = buildCategoryCandidate(finding, category, tokenName, vendorNamespace);
+    if (candidate) candidates.push(candidate);
+  }
+
+  // Sort alphabetically
+  candidates.sort((a, b) => a.name.localeCompare(b.name));
+
+  return { category, candidates, unresolved };
+}
+
+/**
+ * Build a mechanical token name for non-color categories.
+ */
+function buildCategoryMechanicalName(
+  finding: import("../parsers/types.js").RawFinding,
+  category: import("../parsers/types.js").TokenCategory,
+): string {
+  if (finding.declName) {
+    const kebab = camelToKebab(finding.declName);
+    return `${category}.${kebab}`;
+  }
+  // Fallback: slug from rawValue
+  const slug = finding.rawValue
+    .replace(/[^a-zA-Z0-9]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .toLowerCase()
+    .slice(0, 40);
+  return `${category}.${slug || `unknown-${finding.line}`}`;
+}
+
+function camelToKebab(name: string): string {
+  return name
+    .replace(/([A-Z])/g, "-$1")
+    .toLowerCase()
+    .replace(/^-/, "");
+}
+
+/**
+ * Build a DTCG CandidateToken for a non-color category finding.
+ */
+function buildCategoryCandidate(
+  finding: import("../parsers/types.js").RawFinding,
+  category: import("../parsers/types.js").TokenCategory,
+  tokenName: string,
+  vendorNamespace: string,
+): CandidateToken | null {
+  const provenance = [
+    { sourcePath: finding.sourcePath, line: finding.line, rawValue: finding.rawValue },
+  ];
+
+  // Helper: only include $description when the value is defined (exactOptionalPropertyTypes compat)
+  const desc = (label: string): { $description: string } | Record<string, never> =>
+    finding.declName ? { $description: `${label}: ${finding.declName}` } : {};
+
+  switch (category) {
+    case "typography": {
+      // DTCG composite token for typography
+      const v = finding.normalizedValue as Record<string, unknown> | null;
+      if (!v) return null;
+      const extensions: Record<string, unknown> = {};
+      if (v.relativeTo) {
+        extensions.swiftui = { relativeTo: v.relativeTo };
+      }
+      return {
+        name: tokenName,
+        $type: "typography",
+        $value: {
+          fontFamily: v.fontFamily ?? "system",
+          fontSize: v.fontSize ?? 16,
+          fontWeight: v.fontWeight ?? 400,
+          lineHeight: v.lineHeight ?? 1.5,
+          letterSpacing: v.letterSpacing ?? "0px",
+        },
+        ...desc("Typography token"),
+        ...(Object.keys(extensions).length > 0 ? { $extensions: extensions } : {}),
+        _provenance: provenance,
+        _confidence: "high",
+        _llmDerived: false,
+      };
+    }
+
+    case "spacing": {
+      const v = finding.normalizedValue;
+      if (typeof v !== "number") return null;
+      return {
+        name: tokenName,
+        $type: "dimension",
+        $value: `${v}px`,
+        ...desc("Spacing token"),
+        _provenance: provenance,
+        _confidence: "high",
+        _llmDerived: false,
+      };
+    }
+
+    case "cornerRadius": {
+      const v = finding.normalizedValue;
+      const extensions: Record<string, unknown> = {};
+      if (finding.shapeType) {
+        extensions.swiftui = { style: finding.shapeType };
+      }
+      if (typeof v === "number") {
+        return {
+          name: tokenName,
+          $type: "dimension",
+          $value: `${v}px`,
+          ...desc("Corner radius"),
+          ...(Object.keys(extensions).length > 0 ? { $extensions: extensions } : {}),
+          _provenance: provenance,
+          _confidence: "high",
+          _llmDerived: false,
+        };
+      }
+      // 4-corner object — emit as an extensions object
+      return {
+        name: tokenName,
+        $type: "dimension",
+        $value: "0px",
+        $extensions: {
+          swiftui: {
+            cornerRadii: v,
+            ...(finding.shapeType ? { style: finding.shapeType } : {}),
+          },
+        },
+        ...desc("Uneven corner radius"),
+        _provenance: provenance,
+        _confidence: "medium",
+        _llmDerived: false,
+      };
+    }
+
+    case "shadow": {
+      // DTCG shadow composite token
+      const v = finding.normalizedValue as Record<string, unknown> | null;
+      if (!v) return null;
+      return {
+        name: tokenName,
+        $type: "shadow",
+        $value: {
+          color: v.color ?? "rgba(0,0,0,0.12)",
+          offsetX: typeof v.x === "number" ? `${v.x}px` : "0px",
+          offsetY: typeof v.y === "number" ? `${v.y}px` : "0px",
+          blur: typeof v.radius === "number" ? `${v.radius}px` : "0px",
+          spread: "0px",
+        },
+        ...desc("Shadow token"),
+        _provenance: provenance,
+        _confidence: "high",
+        _llmDerived: false,
+      };
+    }
+
+    case "animation": {
+      const v = finding.normalizedValue as Record<string, unknown> | null;
+      const duration = typeof v?.duration === "number" ? v.duration : 0.3;
+      const curve = typeof v?.curve === "string" ? v.curve : "easeInOut";
+      return {
+        name: tokenName,
+        $type: "duration",
+        $value: `${duration}ms`,
+        $extensions: {
+          motion: { curve, duration, ...(v?.spring ? { spring: v.spring } : {}) },
+        },
+        ...desc("Animation token"),
+        _provenance: provenance,
+        _confidence: "high",
+        _llmDerived: false,
+      };
+    }
+
+    case "component": {
+      return {
+        name: tokenName,
+        $type: "custom",
+        $value: finding.declName ?? finding.rawValue.slice(0, 80),
+        $extensions: {
+          swiftui: {
+            modifierChain: finding.modifierChain ?? [],
+            protocol: finding.context ?? "ViewModifier",
+          },
+        },
+        ...desc("Component token"),
+        _provenance: provenance,
+        _confidence: "medium",
+        _llmDerived: false,
+      };
+    }
+
+    case "liquidGlass": {
+      const vendor = vendorNamespace.replace(/\./g, "_");
+      return {
+        name: tokenName,
+        $type: "custom",
+        $value: finding.declName ?? "glass",
+        $extensions: {
+          [vendor]: {
+            material: {
+              variant: finding.context ?? "regular",
+              rawValue: finding.rawValue.slice(0, 120),
+            },
+          },
+        },
+        ...desc("Liquid Glass material"),
+        _provenance: provenance,
+        _confidence: "medium",
+        _llmDerived: false,
+      };
+    }
+
+    case "theme": {
+      const vendor = vendorNamespace.replace(/\./g, "_");
+      return {
+        name: tokenName,
+        $type: "custom",
+        $value: finding.declName ?? "theme",
+        $extensions: {
+          [vendor]: {
+            theme: {
+              injectionPattern: finding.context ?? "EnvironmentKey",
+              rawValue: finding.rawValue.slice(0, 120),
+            },
+          },
+        },
+        ...desc("Theme injection"),
+        _provenance: provenance,
+        _confidence: "medium",
+        _llmDerived: false,
+      };
+    }
+
+    default:
+      return null;
+  }
 }

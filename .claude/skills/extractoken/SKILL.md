@@ -12,9 +12,9 @@ trigger_phrases:
 # Extractoken
 
 Reverse-engineers an implicit SwiftUI design system into three artifacts:
-- `tokens.json` — W3C DTCG 2025.10 design tokens
+- `tokens.json` — W3C DTCG 2025.10 design tokens (all 9 categories)
 - `DESIGN.md` — LLM-readable brand narrative companion (Google @google/design.md alpha format)
-- `audit.md` — Drift report: magic numbers, near-duplicate colors, harmonization recommendations
+- `audit.md` — Drift report: magic numbers, near-duplicate colors, off-scale values, Liquid Glass violations, harmonization recommendations
 
 Invoke as: `/extractoken --path <swift-repo> [--output <dir>] [--no-llm]`
 
@@ -23,7 +23,9 @@ Invoke as: `/extractoken --path <swift-repo> [--output <dir>] [--no-llm]`
 ## Pipeline
 
 When invoked, run this pipeline. Each step is restartable; if any LLM task fails,
-re-running picks up where it left off (findings.raw.json is durable).
+re-running picks up where it left off (`findings.raw.json` is durable).
+
+`--no-llm` mode skips Steps 2, 3, 4, 6, 7 entirely. Steps 1, 5, 8 still run.
 
 ### Step 1 — Parse + analyze (deterministic)
 
@@ -33,40 +35,63 @@ node /Users/conor/Development/Extoken/.claude/skills/extractoken/dist/extract.js
   --output <out> \
   [--no-llm] \
   [--max-files 2000] \
-  [--delta-e-threshold 2.5]
+  [--delta-e-threshold 2.5] \
+  [--skip <categories>] \
+  [--target-os <ver>] \
+  [--vendor-namespace <s>] \
+  [--force-color-space srgb|display-p3|oklch]
 ```
 
 This emits:
-- `<out>/.extractoken/findings.raw.json` — AST + regex extraction results
+- `<out>/.extractoken/findings.raw.json` — AST + regex extraction results for all 9 categories
 - `<out>/.extractoken/clusters.json` — color cluster analysis
-- `<out>/.extractoken/llm-tasks.json` — manifest of pending LLM passes (unless --no-llm)
-- `<out>/.extractoken/prompts/normalize-color.md` — prompt for the normalize subagent
+- `<out>/.extractoken/numericClusters.json` — numeric cluster analysis (spacing/radius/shadow)
+- `<out>/.extractoken/drift.json` — off-scale numeric values
+- `<out>/.extractoken/meta.json` — vendor namespace + target OS
+- `<out>/.extractoken/llm-tasks.json` — manifest of pending LLM passes (unless `--no-llm`)
+- `<out>/.extractoken/prompts/normalize-<category>-<n>.md` — per-category normalize prompts
 
-### Step 2 — Run pending LLM tasks (skip if --no-llm)
+### Step 2 — Run pending normalize tasks (skip if --no-llm)
 
-Read `<out>/.extractoken/llm-tasks.json`. For each task with `status: "pending"`:
+Read `<out>/.extractoken/llm-tasks.json`. For each task with `status: "pending"` and `pass: "normalize"`:
 
 Spawn an Agent subagent with:
 - `subagent_type`: "general-purpose"
 - `model`: `task.recommendedModel` (e.g. "claude-haiku-4-5-20251001")
-- `description`: `task.id` (e.g. "normalize-color")
-- `prompt`: contents of `task.promptPath`, with this instruction prepended:
+- `description`: `task.id` (e.g. "normalize-color-1")
+- `prompt`: contents of `task.promptPath`, prepended with:
 
 ```
 Read the prompt below and write your structured JSON response to <task.responsePath>
-using the Write tool. Validate that your output matches the CandidateFile schema before writing.
+using the Write tool. Validate that your output matches the Mapping[] schema before writing.
 Reply with exactly the word "done" after writing.
 
 ---
 [contents of task.promptPath]
 ```
 
-Independent tasks (different categories) can run in parallel — multiple Agent calls in one message.
-All normalize tasks are independent. Harmonize and narrate depend on normalize completing.
-
+Independent tasks (different categories or chunks) can run in parallel.
 After all tasks complete, verify each `task.responsePath` exists.
 
-### Step 3 — Emit final artifacts (deterministic)
+### Step 3 — Plan harmonize (skip if --no-llm)
+
+```bash
+node /Users/conor/Development/Extoken/.claude/skills/extractoken/dist/extract.js plan-harmonize \
+  --output <out> \
+  [--model-harmonize claude-sonnet-4-6]
+```
+
+This reads `clusters.json` + `numericClusters.json` and appends a `harmonize` task to `llm-tasks.json`.
+If there are no clusters, this is a no-op.
+
+### Step 4 — Run harmonize task (skip if --no-llm)
+
+Read `<out>/.extractoken/llm-tasks.json`. For the task with `pass: "harmonize"` and `status: "pending"`:
+
+Spawn one Agent subagent with `task.recommendedModel` against the harmonize prompt.
+The subagent writes `<out>/.extractoken/llm-out/mapping.harmonize.json` directly via the Write tool.
+
+### Step 5 — Emit final artifacts (deterministic)
 
 ```bash
 node /Users/conor/Development/Extoken/.claude/skills/extractoken/dist/extract.js emit \
@@ -76,19 +101,31 @@ node /Users/conor/Development/Extoken/.claude/skills/extractoken/dist/extract.js
 
 This:
 - Reads LLM normalize outputs from `<out>/.extractoken/llm-out/`
+- Merges normalize + harmonize mappings with findings (Node-side)
 - Validates against DTCG 2025.10 schema (Ajv — hard error on failure)
-- Writes `<out>/tokens.json`, `<out>/audit.md`, `<out>/DESIGN.md` (stub)
+- Writes `<out>/tokens.json`, `<out>/audit.md`, `<out>/DESIGN.md` (stub in --no-llm)
+- Computes diff vs `<out>/.extractoken/previous/tokens.json` (if it exists) → appended to audit.md
 - Snapshots `tokens.json` to `<out>/.extractoken/previous/tokens.json` for diff on next run
 
-### Step 4 — Run narrate (if needed, skip if --no-llm)
+### Step 6 — Plan narrate (skip if --no-llm)
 
-If `<out>/.extractoken/llm-tasks.json` shows a `narrate` task still pending,
-spawn one more subagent with `task.recommendedModel` against the narrate prompt,
-instructing it to Write `<out>/DESIGN.md` directly using the Write tool.
+```bash
+node /Users/conor/Development/Extoken/.claude/skills/extractoken/dist/extract.js plan-narrate \
+  --output <out> \
+  [--model-narrate claude-sonnet-4-6]
+```
 
-*(Slice 1: narrate prompt not yet generated. DESIGN.md will be a stub.)*
+This reads `tokens.json` + `audit.md` and appends a `narrate` task to `llm-tasks.json`.
 
-### Step 5 — Finalize
+### Step 7 — Run narrate task (skip if --no-llm)
+
+Read `<out>/.extractoken/llm-tasks.json`. For the task with `pass: "narrate"` and `status: "pending"`:
+
+Spawn one Agent subagent with `task.recommendedModel` against the narrate prompt.
+The subagent reads `tokens.json` + `audit.md` and writes `<out>/DESIGN.md` directly via the Write tool.
+This is the highest-leverage LLM step — the subagent generates the full brand narrative prose.
+
+### Step 8 — Finalize
 
 ```bash
 node /Users/conor/Development/Extoken/.claude/skills/extractoken/dist/extract.js finalize \
@@ -102,7 +139,7 @@ Prints a summary of what was extracted.
 
 ---
 
-## Flags
+## Flags (parse subcommand)
 
 | Flag | Default | Description |
 |---|---|---|
@@ -112,8 +149,14 @@ Prints a summary of what was extracted.
 | `--max-files <n>` | 2000 | Hard limit on .swift files |
 | `--delta-e-threshold <n>` | 2.5 | CIEDE2000 distance for near-duplicate clustering |
 | `--model-normalize <id>` | claude-haiku-4-5-20251001 | Model for normalize pass |
+| `--model-harmonize <id>` | claude-sonnet-4-6 | Model for harmonize pass |
+| `--model-narrate <id>` | claude-sonnet-4-6 | Model for narrate pass |
 | `--skip <cats>` | (none) | Comma-separated categories to skip |
-| `--verbose` | false | Verbose output |
+| `--force-color-space <s>` | (auto) | Override color space: srgb \| display-p3 \| oklch |
+| `--target-os <ver>` | (auto-detect) | Target iOS version; gates Liquid Glass (26) and @Entry (18) |
+| `--vendor-namespace <s>` | (from Info.plist) | Override $extensions vendor key |
+| `--self-critique` | false | Enable self-critique pass after narrate |
+| `--verbose` | false | Verbose output with per-category counts |
 
 ---
 
@@ -121,17 +164,27 @@ Prints a summary of what was extracted.
 
 ```
 <output-dir>/
-├── tokens.json              # W3C DTCG 2025.10 — canonical machine truth
+├── tokens.json              # W3C DTCG 2025.10 — canonical machine truth (all 9 categories)
 ├── DESIGN.md                # Brand narrative (stub until narrate pass runs)
-├── audit.md                 # Drift report
+├── audit.md                 # Drift report (7 sections: magic numbers, near-duplicates,
+│                            #   orphaned tokens, off-scale values, glass violations,
+│                            #   harmonization, changes since last extraction)
 └── .extractoken/            # Internal state — delete to force clean re-run
     ├── findings.raw.json
     ├── clusters.json
+    ├── numericClusters.json
+    ├── drift.json
+    ├── meta.json            # vendorNamespace + targetOs
     ├── llm-tasks.json
     ├── prompts/
-    │   └── normalize-color.md
+    │   ├── normalize-color-1.md
+    │   ├── normalize-typography-1.md
+    │   ├── harmonize.md
+    │   └── narrate.md
     ├── llm-out/
-    │   └── normalize-color.json
+    │   ├── mapping.color.1.json
+    │   ├── mapping.typography.1.json
+    │   └── mapping.harmonize.json
     └── previous/
         └── tokens.json      # Snapshot for diff on next run
 ```
@@ -145,6 +198,7 @@ Prints a summary of what was extracted.
 - DESIGN.md lint failure → hard abort with lint rule details
 - LLM task failure → mark task as `error` in manifest; re-run to retry
 - Missing Asset Catalog file → finding emitted with `assetMissing: true`, `severity: error`
+- No clusters → `plan-harmonize` no-ops cleanly
 
 ---
 

@@ -115,7 +115,12 @@ describe("golden file — grapla-color-only fixture", () => {
     const candidates = buildMechanicalColorCandidates(allFindings);
 
     const designMdPath = emitDesignMd(
-      { colorTokens: candidates.candidates },
+      {
+        colorTokens: candidates.candidates,
+        typographyTokens: [],
+        spacingTokens: [],
+        allCandidateFiles: [candidates],
+      },
       {
         outputDir,
         appName: "GraplaColorOnly",
