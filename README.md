@@ -205,4 +205,4 @@ MIT. See [LICENSE](LICENSE) (TODO).
 
 ## Maintainer
 
-Conor Luddy · `conorluddy@gmail.com` · [github.com/conorluddy](https://github.com/conorluddy)
+[Conor Luddy](https://www.conor.fyi) · [github.com/conorluddy](https://github.com/conorluddy)
