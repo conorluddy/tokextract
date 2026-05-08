@@ -25,21 +25,15 @@ a { color: inherit; text-decoration: none; }
 /* ── Page ─────────────────────────────────────────────────── */
 .vt-page { background: var(--vt-bg); color: var(--vt-ink); }
 
-/* Content max-width: backgrounds + borders stay edge-to-edge; inner content
- * caps at 1440px on wide displays. The max() pattern keeps the original 32px
- * (--vt-s-8) horizontal padding on narrow screens and auto-expands on wider
- * screens to center the content block. */
-.vt-bar,
-.vt-hero,
-.vt-section,
-.vt-page > footer {
-  padding-inline: max(var(--vt-s-8), calc((100% - 1440px) / 2));
-}
+/* Content max-width pattern (defined here, applied at the end of this block).
+ * Backgrounds and borders stay edge-to-edge; inner content caps at 1024px and
+ * auto-centers on wider screens. The max() keeps the original 32px (--vt-s-8)
+ * horizontal padding on narrow screens. */
 
 /* ── Bar / nav ────────────────────────────────────────────── */
 .vt-bar {
   display: flex; align-items: center; justify-content: space-between;
-  padding: var(--vt-s-3) var(--vt-s-8);
+  padding-block: var(--vt-s-3);
   border-bottom: var(--vt-border-hard);
   background: var(--vt-bg);
   font-family: var(--vt-font-mono);
@@ -59,7 +53,7 @@ a { color: inherit; text-decoration: none; }
 
 /* ── Section scaffolding ──────────────────────────────────── */
 .vt-section {
-  padding: var(--vt-s-16) var(--vt-s-8);
+  padding-block: var(--vt-s-16);
   border-bottom: var(--vt-border-hard);
   background: var(--vt-bg);
 }
@@ -93,9 +87,21 @@ a { color: inherit; text-decoration: none; }
 
 /* ── Hero ─────────────────────────────────────────────────── */
 .vt-hero {
-  padding: var(--vt-s-16) var(--vt-s-8);
+  padding-block: var(--vt-s-16);
   border-bottom: var(--vt-border-hard);
   background: var(--vt-bg);
+}
+
+/* ── Content max-width: 1024px cap on wide displays ─────────
+ * Backgrounds + borders extend edge-to-edge; inner content of every
+ * full-width container (bar, hero, sections, footer) auto-centers
+ * within 1024px. Below ~1088px viewport the max() falls through to
+ * the original --vt-s-8 (32px) gutter. */
+.vt-bar,
+.vt-hero,
+.vt-section,
+.vt-page > footer {
+  padding-inline: max(var(--vt-s-8), calc((100% - 1024px) / 2));
 }
 .vt-hero-grid {
   display: grid;
