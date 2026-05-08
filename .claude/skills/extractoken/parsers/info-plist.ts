@@ -1,20 +1,18 @@
 /**
  * parsers/info-plist.ts
  *
- * Extracts CFBundleIdentifier from an Info.plist file in the target repo.
- * Used by T3.5 to derive a vendor namespace for $extensions.<vendor>.*
- * DTCG extension keys.
+ * Extracts the target app's bundle identifier for use as the vendor namespace
+ * in DTCG `$extensions.<vendor>.*` keys.
  *
- * Strategy:
- * 1. Walk the repo for Info.plist files (depth-first, stop at first found)
- * 2. Parse the XML plist format hand-written (avoids a heavy plist npm dep)
- * 3. Return CFBundleIdentifier string, or null if not found
+ * Strategy (in order of preference):
+ * 1. Info.plist `CFBundleIdentifier` — older Xcode projects store it here.
+ * 2. `.xcodeproj/project.pbxproj` `PRODUCT_BUNDLE_IDENTIFIER` — modern Xcode
+ *    (Xcode 13+) sets the bundle ID in build settings, not Info.plist. Multi-target
+ *    projects have several entries (main / Watch / Widgets / Complications);
+ *    we pick the shortest one without a target-extension suffix.
+ * 3. Return null. Caller falls back to `com.unknown.<dirname>`.
  *
- * Caller falls back to `com.unknown.<dirname>` when null is returned.
- *
- * Hand-parsing is safe here: Info.plist CFBundleIdentifier is always a
- * top-level <key>CFBundleIdentifier</key><string>...</string> pair — no
- * nesting required.
+ * Both fallbacks use lightweight string parsing — no heavy plist/xcodeproj deps.
  */
 
 import fs from "node:fs";
@@ -24,19 +22,25 @@ import glob from "fast-glob";
 // === PUBLIC API ===
 
 /**
- * Walk repoPath for an Info.plist file and extract CFBundleIdentifier.
- * Returns the bundle ID string (e.g. "com.example.MyApp"), or null.
+ * Extract a bundle identifier from the target repo to use as a vendor namespace.
+ * Tries Info.plist `CFBundleIdentifier` first; falls back to `.xcodeproj/project.pbxproj`
+ * `PRODUCT_BUNDLE_IDENTIFIER` (modern Xcode default).
  */
 export function extractBundleId(repoPath: string): string | null {
+  // Path 1: Info.plist CFBundleIdentifier
   const plistPath = findInfoPlist(repoPath);
-  if (!plistPath) return null;
-
-  try {
-    const content = fs.readFileSync(plistPath, "utf-8");
-    return parseBundleId(content);
-  } catch {
-    return null;
+  if (plistPath) {
+    try {
+      const content = fs.readFileSync(plistPath, "utf-8");
+      const fromPlist = parseBundleId(content);
+      if (fromPlist) return fromPlist;
+    } catch {
+      // fall through
+    }
   }
+
+  // Path 2: .xcodeproj/project.pbxproj PRODUCT_BUNDLE_IDENTIFIER
+  return extractFromXcodeProject(repoPath);
 }
 
 // === PRIVATE HELPERS ===
@@ -114,4 +118,62 @@ function parseBundleId(content: string): string | null {
   if (!bundleId.includes(".") || /\s/.test(bundleId)) return null;
 
   return bundleId;
+}
+
+/**
+ * Extract a PRODUCT_BUNDLE_IDENTIFIER from the target's `.xcodeproj/project.pbxproj`.
+ * Multi-target projects list several IDs; we pick the shortest one without a known
+ * extension-target suffix (`.watchkitapp`, `.widgets`, `.complications`, `.tests`,
+ * `.uitests`, `.notification`, `.intent`, `.share`).
+ */
+function extractFromXcodeProject(repoPath: string): string | null {
+  let pbxproj: string;
+  try {
+    const projects = glob.sync("**/*.xcodeproj/project.pbxproj", {
+      cwd: repoPath,
+      absolute: true,
+      followSymbolicLinks: false,
+      ignore: ["**/Pods/**", "**/.build/**", "**/DerivedData/**", "**/build/**"],
+    });
+    if (projects.length === 0) return null;
+    // Prefer shorter paths (closer to root)
+    const sorted = [...projects].sort(
+      (a, b) => a.split(path.sep).length - b.split(path.sep).length,
+    );
+    const target = sorted[0];
+    if (!target) return null;
+    pbxproj = fs.readFileSync(target, "utf-8");
+  } catch {
+    return null;
+  }
+
+  const ids = new Set<string>();
+  const pattern = /PRODUCT_BUNDLE_IDENTIFIER\s*=\s*([^\s;]+);/g;
+  for (const match of pbxproj.matchAll(pattern)) {
+    const id = match[1]?.trim().replace(/^["']|["']$/g, "");
+    if (!id || !id.includes(".") || /\s/.test(id) || id.startsWith("$")) continue;
+    ids.add(id);
+  }
+  if (ids.size === 0) return null;
+
+  const EXTENSION_SUFFIXES = [
+    ".watchkitapp",
+    ".widgets",
+    ".widget",
+    ".complications",
+    ".tests",
+    ".uitests",
+    ".notification",
+    ".intent",
+    ".share",
+    ".extension",
+  ];
+  const candidates = [...ids].filter(
+    (id) => !EXTENSION_SUFFIXES.some((suffix) => id.toLowerCase().includes(suffix)),
+  );
+  // Prefer non-extension; fall back to all if filter eliminates everything
+  const pool = candidates.length > 0 ? candidates : [...ids];
+  // Pick the shortest — main app IDs are typically the shortest in a multi-target
+  pool.sort((a, b) => a.length - b.length);
+  return pool[0] ?? null;
 }
