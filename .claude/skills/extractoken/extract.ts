@@ -476,12 +476,19 @@ async function runParse(options: ParseOptions): Promise<void> {
       catalogLookup.set(lowercaseFirst(assetName), assetName);
     }
 
-    // 2b.2: Enrich Color("Name") and Color(.name) call-site findings.
+    // 2b.2: Enrich Color("Name") and Color(.name) findings. This applies to BOTH
+    // call-sites and declarations: Swift code commonly aliases an Asset Catalog
+    // entry from a Color extension (e.g. `extension Color { static let foo = Color("Bar") }`).
+    // Both the alias declaration AND the underlying colorset become tokens — the
+    // harmonize pass identifies them as duplicates and recommends consolidation.
     for (let i = 0; i < allFindings.length; i++) {
       const finding = allFindings[i];
-      if (!finding || !finding.assetName || finding.isDeclaration || finding.category !== "color") {
+      if (!finding || !finding.assetName || finding.category !== "color") {
         continue;
       }
+      // Skip enrichment for the colorset's own declaration — it already has its value
+      // from the catalog walk in Stage 2b.1.
+      if (finding.context === "Asset Catalog colorset") continue;
 
       if (SYSTEM_COLOR_RESOURCE_NAMES.has(finding.assetName)) {
         allFindings[i] = {

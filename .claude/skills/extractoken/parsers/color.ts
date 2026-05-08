@@ -434,8 +434,9 @@ function classifyColorCall(rawValue: string): ColorCallClassification {
     };
   }
 
-  // Color("AssetName") — Asset Catalog reference
-  const assetMatch = /^Color\(\s*"([^"]+)"\s*\)$/.exec(rawValue);
+  // Color("AssetName") and Color("AssetName", bundle: .module) — Asset Catalog reference.
+  // The bundle: argument is iOS 14+ for SPM-resourced colorsets; common in multi-target apps.
+  const assetMatch = /^Color\(\s*"([^"]+)"\s*(?:,\s*bundle\s*:\s*[^)]+)?\s*\)$/.exec(rawValue);
   if (assetMatch?.[1]) {
     return {
       normalizedValue: null, // Resolved by asset-catalog.ts
@@ -446,46 +447,50 @@ function classifyColorCall(rawValue: string): ColorCallClassification {
     };
   }
 
-  // Color(.sRGB, red: R, green: G, blue: B, opacity: A)
+  // Color(.sRGB, red: R, green: G, blue: B, opacity: A) — components may be:
+  //   - decimal literals: 0.067, 0.953
+  //   - hex byte arithmetic: 0xF3 / 255 (common idiom for hex-as-rgb)
+  //   - integer division: 243 / 255
+  // Capture each component as a flexible expression and evaluate via parseColorComponent.
   const srgbMatch =
-    /^Color\(\s*\.sRGB\s*,\s*red:\s*([\d.]+)\s*,\s*green:\s*([\d.]+)\s*,\s*blue:\s*([\d.]+)(?:\s*,\s*opacity:\s*([\d.]+))?\s*\)$/.exec(
+    /^Color\(\s*\.sRGB\s*,\s*red:\s*([^,)]+?)\s*,\s*green:\s*([^,)]+?)\s*,\s*blue:\s*([^,)]+?)(?:\s*,\s*opacity:\s*([^,)]+?))?\s*\)$/.exec(
       rawValue,
     );
   if (srgbMatch) {
-    return {
-      normalizedValue: {
-        r: Number.parseFloat(srgbMatch[1] ?? "0"),
-        g: Number.parseFloat(srgbMatch[2] ?? "0"),
-        b: Number.parseFloat(srgbMatch[3] ?? "0"),
-        a: srgbMatch[4] !== undefined ? Number.parseFloat(srgbMatch[4]) : 1.0,
-        colorSpace: "srgb",
-      },
-      isSystemAlias: false,
-      assetName: undefined,
-      severity: "info",
-      requiresSemanticResolution: false,
-    };
+    const r = parseColorComponent(srgbMatch[1] ?? "0");
+    const g = parseColorComponent(srgbMatch[2] ?? "0");
+    const b = parseColorComponent(srgbMatch[3] ?? "0");
+    const a = srgbMatch[4] !== undefined ? parseColorComponent(srgbMatch[4]) : 1.0;
+    if (r !== null && g !== null && b !== null && a !== null) {
+      return {
+        normalizedValue: { r, g, b, a, colorSpace: "srgb" },
+        isSystemAlias: false,
+        assetName: undefined,
+        severity: "info",
+        requiresSemanticResolution: false,
+      };
+    }
   }
 
   // Color(red: R, green: G, blue: B) / Color(red: R, green: G, blue: B, opacity: A)
   const rgbMatch =
-    /^Color\(\s*red:\s*([\d.]+)\s*,\s*green:\s*([\d.]+)\s*,\s*blue:\s*([\d.]+)(?:\s*,\s*opacity:\s*([\d.]+))?\s*\)$/.exec(
+    /^Color\(\s*red:\s*([^,)]+?)\s*,\s*green:\s*([^,)]+?)\s*,\s*blue:\s*([^,)]+?)(?:\s*,\s*opacity:\s*([^,)]+?))?\s*\)$/.exec(
       rawValue,
     );
   if (rgbMatch) {
-    return {
-      normalizedValue: {
-        r: Number.parseFloat(rgbMatch[1] ?? "0"),
-        g: Number.parseFloat(rgbMatch[2] ?? "0"),
-        b: Number.parseFloat(rgbMatch[3] ?? "0"),
-        a: rgbMatch[4] !== undefined ? Number.parseFloat(rgbMatch[4]) : 1.0,
-        colorSpace: "srgb",
-      },
-      isSystemAlias: false,
-      assetName: undefined,
-      severity: "info",
-      requiresSemanticResolution: false,
-    };
+    const r = parseColorComponent(rgbMatch[1] ?? "0");
+    const g = parseColorComponent(rgbMatch[2] ?? "0");
+    const b = parseColorComponent(rgbMatch[3] ?? "0");
+    const a = rgbMatch[4] !== undefined ? parseColorComponent(rgbMatch[4]) : 1.0;
+    if (r !== null && g !== null && b !== null && a !== null) {
+      return {
+        normalizedValue: { r, g, b, a, colorSpace: "srgb" },
+        isSystemAlias: false,
+        assetName: undefined,
+        severity: "info",
+        requiresSemanticResolution: false,
+      };
+    }
   }
 
   // Color(hex: "#RRGGBB") or Color(hex: "#RRGGBBAA")
@@ -551,6 +556,48 @@ const SYSTEM_ALIAS_PATTERNS = [
 
 function isSystemAliasCall(rawValue: string): boolean {
   return SYSTEM_ALIAS_PATTERNS.some((pattern) => pattern.test(rawValue));
+}
+
+/**
+ * Parse a single Color() component expression into a [0,1] float.
+ * Supported forms (all common in real Swift):
+ *   - decimal literal:        "0.953"      → 0.953
+ *   - integer:                "1"          → 1.0
+ *   - hex byte / 255:         "0xF3 / 255" → 0.953
+ *   - decimal / divisor:      "243 / 255"  → 0.953
+ *   - hex literal alone:      "0xF3"       → 0.953 (auto-/255 if value > 1)
+ * Returns null if the expression isn't one of the recognized deterministic forms.
+ */
+function parseColorComponent(text: string): number | null {
+  const trimmed = text.trim();
+
+  // Form: <num> / <num>
+  const divMatch = /^(0x[0-9A-Fa-f]+|\d+(?:\.\d+)?)\s*\/\s*(0x[0-9A-Fa-f]+|\d+(?:\.\d+)?)$/.exec(
+    trimmed,
+  );
+  if (divMatch?.[1] && divMatch[2]) {
+    const numerator = parseNumeric(divMatch[1]);
+    const divisor = parseNumeric(divMatch[2]);
+    if (numerator === null || divisor === null || divisor === 0) return null;
+    return numerator / divisor;
+  }
+
+  // Plain numeric (decimal or hex)
+  const value = parseNumeric(trimmed);
+  if (value === null) return null;
+  // Bare hex byte (0xFF = 255) is presumed to be /255-scale
+  if (value > 1.0 && /^0x/i.test(trimmed)) return value / 255;
+  return value;
+}
+
+/** Parse a numeric literal that may be hex (0xFF) or decimal (0.5, 243). */
+function parseNumeric(s: string): number | null {
+  if (/^0x/i.test(s)) {
+    const n = Number.parseInt(s.slice(2), 16);
+    return Number.isNaN(n) ? null : n;
+  }
+  const n = Number.parseFloat(s);
+  return Number.isNaN(n) ? null : n;
 }
 
 /**

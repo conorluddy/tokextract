@@ -56,6 +56,8 @@ export async function loadAssetCatalogColors(
     cwd: rootPath,
     absolute: true,
     followSymbolicLinks: false,
+    // Exclude SPM/Xcode build outputs that copy colorsets into derived locations.
+    ignore: ["**/.build/**", "**/DerivedData/**", "**/build/**"],
   });
 
   const catalog = new Map<string, ColorsetVariants>();
