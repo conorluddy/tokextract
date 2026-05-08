@@ -2,9 +2,9 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Project: conorluddy marketplace + Tokextract plugin
+## Project: tokextract marketplace + Tokextract plugin
 
-This repo is a **Claude Code plugin marketplace** named `conorluddy`, currently shipping one plugin: **Tokextract**. v1 ships. 246 tests pass. Validated on two distinct SwiftUI apps (Grapla + Ocras).
+This repo is a **Claude Code plugin marketplace** named `tokextract`, currently shipping one plugin: **Tokextract**. v1 ships. 246 tests pass. Validated on two distinct SwiftUI apps (Grapla + Ocras).
 
 The marketplace is the user-facing entry point. The plugin lives at `plugins/tokextract/` and contains the entire Tokextract skill (Node/TypeScript) — parsers, analyzers, emitters, LLM prompt generators, schemas, tests.
 
@@ -53,7 +53,7 @@ npm test                # 246 vitest tests
 npx biome check .       # lint (54 files)
 ```
 
-After modifying source, rebuild and refresh the installed plugin: `/plugin marketplace update conorluddy`.
+After modifying source, rebuild and refresh the installed plugin: `/plugin marketplace update tokextract`.
 
 ### Invoking the skill
 
@@ -61,7 +61,7 @@ From any Claude Code session:
 
 ```
 /plugin marketplace add conorluddy/tokextract    # one-time
-/plugin install tokextract@conorluddy                        # one-time
+/plugin install tokextract@tokextract                        # one-time
 /tokextract:extract --path <swift-repo> --output <dir>       # use it
 ```
 

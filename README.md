@@ -59,7 +59,7 @@ From any Claude Code session:
 
 ```
 /plugin marketplace add conorluddy/tokextract
-/plugin install tokextract@conorluddy
+/plugin install tokextract@tokextract
 ```
 
 Then invoke as:
@@ -128,7 +128,7 @@ After modifying source, rebuild and refresh the installed plugin:
 
 ```bash
 cd plugins/tokextract && npm run build
-/plugin marketplace update conorluddy   # in a Claude Code session
+/plugin marketplace update tokextract   # in a Claude Code session
 ```
 
 ---

@@ -1,10 +1,10 @@
 {
-  "name": "conorluddy",
+  "name": "tokextract",
   "owner": {
     "name": "Conor Luddy",
     "url": "https://www.conor.fyi"
   },
-  "description": "Conor Luddy's Claude Code plugin marketplace. Indie developer tools across iOS / SwiftUI / design systems.",
+  "description": "Tokextract — reverse-engineer a SwiftUI app's design system into DTCG tokens, DESIGN.md, and an audit report.",
   "metadata": {
     "pluginRoot": "./plugins"
   },

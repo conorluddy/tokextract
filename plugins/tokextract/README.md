@@ -26,7 +26,7 @@ Tokextract is a Claude Code plugin in the `conorluddy` marketplace. End users in
 
 ```
 /plugin marketplace add conorluddy/tokextract
-/plugin install tokextract@conorluddy
+/plugin install tokextract@tokextract
 ```
 
 For local development on the plugin source (Node 20+):
@@ -39,7 +39,7 @@ npm test                # 246 vitest tests
 npx biome check .       # lint
 ```
 
-After modifying source, refresh the installed plugin: `/plugin marketplace update conorluddy`.
+After modifying source, refresh the installed plugin: `/plugin marketplace update tokextract`.
 
 ---
 

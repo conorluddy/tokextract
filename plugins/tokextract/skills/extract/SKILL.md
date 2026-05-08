@@ -213,7 +213,7 @@ This is a Claude Code plugin distributed through the `conorluddy` marketplace. T
 /plugin marketplace add conorluddy/tokextract
 
 # Install the plugin:
-/plugin install tokextract@conorluddy
+/plugin install tokextract@tokextract
 ```
 
 The plugin is shipped pre-built — no `npm install` step required at install time.
@@ -226,4 +226,4 @@ npm install
 npm run build
 ```
 
-After rebuilding, refresh the installed plugin: `/plugin marketplace update conorluddy`.
+After rebuilding, refresh the installed plugin: `/plugin marketplace update tokextract`.
