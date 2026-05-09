@@ -23,6 +23,7 @@ function Bar() {
         <a href="#validation">validation</a>
         <a href="#sample">sample</a>
         <a href="#pipeline">pipeline</a>
+        <a href="#figma">figma</a>
         <a href="#roadmap">roadmap</a>
         <a className="vt-cta-gh" href={meta.repo}>github →</a>
       </nav>
@@ -242,11 +243,54 @@ function Pipeline() {
   );
 }
 
+// ── Figma plugin ────────────────────────────────────────
+function FigmaPlugin() {
+  const { figma } = window.TOKEXTRACT;
+  return (
+    <Section id="figma" n="08" title={figma.title} lede={figma.lede}>
+      <div style={{ display: 'grid', gap: 8, marginBottom: 24 }}>
+        {figma.bullets.map((b, i) => (
+          <Frame key={i} panel style={{ padding: 14, display: 'grid', gridTemplateColumns: 'minmax(180px, 220px) 1fr', gap: 16, alignItems: 'baseline' }}>
+            <div style={{ fontFamily: 'var(--vt-font-mono)', fontSize: 12, fontWeight: 600, color: 'var(--vt-accent)', textTransform: 'uppercase', letterSpacing: 0.6 }}>{b.k}</div>
+            <div style={{ fontSize: 13, lineHeight: 1.55, color: 'var(--vt-ink-soft)' }}>{b.v}</div>
+          </Frame>
+        ))}
+      </div>
+
+      <Frame panel style={{ padding: 24, marginBottom: 24 }}>
+        <div style={{ fontFamily: 'var(--vt-font-mono)', fontSize: 11, color: 'var(--vt-accent)', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 8 }}>
+          {figma.direction.title}
+        </div>
+        <p style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--vt-ink)', margin: 0 }}>
+          {figma.direction.body}
+        </p>
+      </Frame>
+
+      <div>
+        <div style={{ fontFamily: 'var(--vt-font-mono)', fontSize: 11, color: 'var(--vt-muted)', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 12 }}>
+          {figma.install.title}
+        </div>
+        <div style={{ display: 'grid', gap: 12 }}>
+          {figma.install.steps.map((step, i) => (
+            <div key={i}>
+              <div style={{ fontFamily: 'var(--vt-font-mono)', fontSize: 11, color: 'var(--vt-muted)', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 6 }}>
+                {step.label}
+              </div>
+              <Pre style={{ marginTop: 0 }}>{step.cmd}</Pre>
+            </div>
+          ))}
+          <p style={{ fontSize: 13, color: 'var(--vt-ink-soft)', marginTop: 6 }}>{figma.install.note}</p>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
 // ── Roadmap ─────────────────────────────────────────────
 function Roadmap() {
   const { roadmap } = window.TOKEXTRACT;
   return (
-    <Section id="roadmap" n="08" title={roadmap.title} lede="Where it is. Where it's going.">
+    <Section id="roadmap" n="09" title={roadmap.title} lede="Where it is. Where it's going.">
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
         <div>
           <div style={{ fontFamily: 'var(--vt-font-mono)', fontSize: 11, color: 'var(--vt-accent)', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 12 }}>
