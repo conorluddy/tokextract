@@ -29,7 +29,16 @@
         "$value": true,
         "$type": { "type": "string" },
         "$description": { "type": "string" },
-        "$extensions": { "type": "object" }
+        "$extensions": { "type": "object" },
+        "$modes": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["$value"],
+            "properties": { "$value": true },
+            "additionalProperties": false
+          }
+        }
       },
       "additionalProperties": false
     }

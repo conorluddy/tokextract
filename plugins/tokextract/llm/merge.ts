@@ -195,10 +195,13 @@ function buildLlmCandidate(finding: RawFinding, mapping: Mapping): CandidateToke
   const dtcgValue = findingToDtcgValue(finding);
   if (dtcgValue === null) return null;
 
+  const modes = buildDarkMode(finding);
+
   const candidate: CandidateToken = {
     name: mapping.name,
     $type: categoryToDtcgType(finding.category),
     $value: dtcgValue,
+    ...(modes ? { $modes: modes } : {}),
     ...(mapping.description ? { $description: mapping.description } : {}),
     _provenance: [
       {
@@ -227,11 +230,13 @@ function buildMechanicalCandidate(
   if (dtcgValue === null) return null;
 
   const mechanicalName = buildMechanicalName(finding, category);
+  const modes = buildDarkMode(finding);
 
   return {
     name: mechanicalName,
     $type: categoryToDtcgType(category),
     $value: dtcgValue,
+    ...(modes ? { $modes: modes } : {}),
     _provenance: [
       {
         sourcePath: finding.sourcePath,
@@ -301,6 +306,24 @@ function colorToHex(color: NormalizedColor): string | null {
  * Convert a finding's normalizedValue to a DTCG-compatible $value.
  * Returns null when normalizedValue is absent or unresolvable.
  */
+/**
+ * Build a `$modes` object from a finding's dark-mode color variant, when present.
+ * Returns null when the finding has no dark variant (or it isn't a color).
+ */
+function buildDarkMode(finding: RawFinding): Record<string, { $value: unknown }> | null {
+  if (finding.category !== "color") return null;
+  const dark = finding.darkValue;
+  if (!dark) return null;
+  return {
+    dark: {
+      $value: {
+        colorSpace: dark.colorSpace ?? "srgb",
+        components: [dark.r, dark.g, dark.b, dark.a ?? 1.0],
+      },
+    },
+  };
+}
+
 function findingToDtcgValue(finding: RawFinding): unknown | null {
   if (finding.normalizedValue === null || finding.normalizedValue === undefined) {
     return null;
