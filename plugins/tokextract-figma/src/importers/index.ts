@@ -21,6 +21,8 @@ export interface ImportResult {
   textStyles: number;
   effectStyles: number;
   skipped: { name: string; reason: string }[];
+  fontFallbacks: { name: string; requested: string; used: string }[];
+  nonDesignTokens: number;
 }
 
 export async function importToken(
@@ -43,7 +45,10 @@ export async function importToken(
         if (token.path[0] === "$extensions" || token.extensions?.["material"]) {
           return importMaterial(ctx, token, result);
         }
-        result.skipped.push({ name: token.name, reason: `unsupported type: ${token.type}` });
+        // Tokens with non-DTCG `$type` (e.g. "custom") aren't design tokens.
+        // We aggregate these into a single counter rather than flooding the
+        // skipped panel with one-line-per-entry noise.
+        result.nonDesignTokens++;
       }
     }
   } catch (error) {

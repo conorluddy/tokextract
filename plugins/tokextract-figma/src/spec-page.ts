@@ -1,5 +1,6 @@
 import type { FlatToken } from "./dtcg";
 import { toRgba } from "./color";
+import { findFont, DEFAULT_FALLBACKS } from "./font-matcher";
 
 const PAGE_NAME = "Tokextract — Tokens";
 const SWATCH = 96;
@@ -23,29 +24,12 @@ export async function buildSpecPage(tokens: FlatToken[]): Promise<PageNode> {
 }
 
 async function pickSpecFonts(): Promise<SpecFonts> {
-  const preferred: FontName[] = [
-    { family: "Inter", style: "Regular" },
-    { family: "Roboto", style: "Regular" },
-  ];
-  for (const font of preferred) {
-    try {
-      await figma.loadFontAsync(font);
-      const boldCandidate: FontName = { family: font.family, style: "Bold" };
-      try {
-        await figma.loadFontAsync(boldCandidate);
-        return { regular: font, bold: boldCandidate };
-      } catch {
-        return { regular: font, bold: font };
-      }
-    } catch {
-      // try next
-    }
-  }
-  const available = await figma.listAvailableFontsAsync();
-  if (available.length === 0) throw new Error("No fonts available to render spec page.");
-  const fallback = available[0].fontName;
-  await figma.loadFontAsync(fallback);
-  return { regular: fallback, bold: fallback };
+  const regular = await findFont({ family: "Inter", style: "Regular" }, DEFAULT_FALLBACKS);
+  const bold = await findFont(
+    { family: regular.fontName.family, style: "Bold" },
+    [regular.fontName, ...DEFAULT_FALLBACKS],
+  );
+  return { regular: regular.fontName, bold: bold.fontName };
 }
 
 function renderColors(page: PageNode, tokens: FlatToken[], top: number, fonts: SpecFonts): number {

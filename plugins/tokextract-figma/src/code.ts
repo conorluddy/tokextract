@@ -34,7 +34,14 @@ async function runImport(msg: UiImportMessage): Promise<ImportResult & { reusedC
   const tokens = flatten(file);
   if (tokens.length === 0) throw new Error("No tokens found in JSON.");
 
-  const result: ImportResult = { variables: 0, textStyles: 0, effectStyles: 0, skipped: [] };
+  const result: ImportResult = {
+    variables: 0,
+    textStyles: 0,
+    effectStyles: 0,
+    skipped: [],
+    fontFallbacks: [],
+    nonDesignTokens: 0,
+  };
 
   // Dedupe by sanitised name — sanitisation can produce collisions (e.g.
   // `font.size.h1` and `font/size/h1` both → `font/size/h1`).
@@ -92,5 +99,15 @@ function respond(msg: UiResponse): void {
 
 function summary(r: ImportResult & { reusedCollection: boolean }): string {
   const collectionVerb = r.reusedCollection ? "Updated" : "Created";
-  return `${collectionVerb} collection · ${r.variables} variables · ${r.textStyles} text · ${r.effectStyles} effects (${r.skipped.length} skipped)`;
+  const parts = [
+    `${collectionVerb} collection`,
+    `${r.variables} variables`,
+    `${r.textStyles} text`,
+    `${r.effectStyles} effects`,
+  ];
+  const tail: string[] = [];
+  if (r.skipped.length > 0) tail.push(`${r.skipped.length} skipped`);
+  if (r.fontFallbacks.length > 0) tail.push(`${r.fontFallbacks.length} font fallbacks`);
+  if (r.nonDesignTokens > 0) tail.push(`${r.nonDesignTokens} non-tokens ignored`);
+  return `${parts.join(" · ")}${tail.length ? ` (${tail.join(", ")})` : ""}`;
 }

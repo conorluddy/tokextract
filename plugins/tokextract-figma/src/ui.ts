@@ -3,7 +3,14 @@
 interface UiResponse {
   type: "done" | "error";
   message?: string;
-  result?: { variables: number; textStyles: number; effectStyles: number; skipped: { name: string; reason: string }[] };
+  result?: {
+    variables: number;
+    textStyles: number;
+    effectStyles: number;
+    skipped: { name: string; reason: string }[];
+    fontFallbacks: { name: string; requested: string; used: string }[];
+    nonDesignTokens: number;
+  };
 }
 
 const $ = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T;
@@ -54,12 +61,21 @@ window.addEventListener("message", (event) => {
       `${r.textStyles} text styles`,
       `${r.effectStyles} effect styles`,
       `${r.skipped.length} skipped`,
+      `${r.fontFallbacks.length} font fallbacks`,
+      `${r.nonDesignTokens} non-tokens ignored`,
     ];
-    statusEl.innerHTML = `<strong>Imported.</strong> ${lines.join(" · ")}`;
+    let html = `<strong>Imported.</strong> ${lines.join(" · ")}`;
     if (r.skipped.length > 0) {
       const details = r.skipped.map((s) => `· ${s.name}: ${s.reason}`).join("\n");
-      statusEl.innerHTML += `<details><summary>Skipped tokens</summary><pre>${escapeHtml(details)}</pre></details>`;
+      html += `<details><summary>Skipped tokens</summary><pre>${escapeHtml(details)}</pre></details>`;
     }
+    if (r.fontFallbacks.length > 0) {
+      const details = r.fontFallbacks
+        .map((f) => `· ${f.name}: requested "${f.requested}", used "${f.used}"`)
+        .join("\n");
+      html += `<details><summary>Font fallbacks used</summary><pre>${escapeHtml(details)}</pre></details>`;
+    }
+    statusEl.innerHTML = html;
   }
 });
 

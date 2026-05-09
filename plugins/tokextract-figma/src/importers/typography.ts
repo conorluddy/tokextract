@@ -1,4 +1,5 @@
 import type { FlatToken, DtcgTypographyValue } from "../dtcg";
+import { findFont, DEFAULT_FALLBACKS } from "../font-matcher";
 import { decorateVariable, ensureVariable, type ImportContext, type ImportResult } from "./index";
 
 export function importFontFamily(ctx: ImportContext, token: FlatToken, result: ImportResult): void {
@@ -43,15 +44,19 @@ export async function importTypography(
   const style = weightNumberToStyleName(
     typeof value.fontWeight === "number" ? value.fontWeight : weightNameToNumber(String(value.fontWeight)) ?? 400,
   );
-  try {
-    await figma.loadFontAsync({ family, style });
-  } catch {
-    result.skipped.push({ name: token.name, reason: `font not available: ${family} ${style}` });
-    return;
+
+  const matched = await findFont({ family, style }, DEFAULT_FALLBACKS);
+  if (matched.reason === "fallback") {
+    result.fontFallbacks.push({
+      name: token.name,
+      requested: `${family} ${style}`,
+      used: `${matched.fontName.family} ${matched.fontName.style}`,
+    });
   }
+
   const text = figma.createTextStyle();
   text.name = token.name;
-  text.fontName = { family, style };
+  text.fontName = matched.fontName;
   text.fontSize = pxOrDefault(value.fontSize, 16);
   if (value.lineHeight) {
     if (typeof value.lineHeight === "number") {
