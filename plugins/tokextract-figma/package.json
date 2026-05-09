@@ -1,0 +1,17 @@
+{
+  "name": "tokextract",
+  "version": "0.1.0",
+  "description": "Figma plugin that imports a Tokextract tokens.json (DTCG 2025.10) into Figma Variables, styles, and a generated spec page.",
+  "scripts": {
+    "build": "npm run build:code && npm run build:ui",
+    "build:code": "esbuild src/code.ts --bundle --target=es2017 --outfile=dist/code.js",
+    "build:ui": "esbuild src/ui.ts --bundle --target=es2017 --outfile=dist/ui.js && node scripts/inline-ui.mjs",
+    "watch": "npm run build:code -- --watch & npm run build:ui -- --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@figma/plugin-typings": "^1.108.0",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.6.0"
+  }
+}
