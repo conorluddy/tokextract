@@ -104,6 +104,32 @@ const TOKEXTRACT = {
     ],
   },
 
+  figma: {
+    title: 'Round-trip into Figma.',
+    lede:  'A companion Figma plugin reads the tokens.json that Tokextract emits and hydrates Figma Variables, text styles, effect styles, and an auto-generated spec page — closing the SwiftUI → Figma loop that no commercial tool covers today.',
+    bullets: [
+      { k: 'Idempotent imports',  v: 'Re-running with the same JSON updates the existing collection in place. No duplicate variables, no duplicate styles.' },
+      { k: 'All 9 categories',    v: 'Color, dimension, number, fontFamily, fontWeight, typography, duration, cubicBezier, shadow. Liquid Glass materials land as JSON-serialised strings (hidden from publishing).' },
+      { k: 'Variable scopes',     v: 'Inferred from token path — radius → CORNER_RADIUS, gap/spacing → GAP, opacity → OPACITY, text-named colors → TEXT_FILL. Figma\'s pickers stay tidy.' },
+      { k: 'Code syntax in Dev Mode',  v: 'Each variable carries its dotted SwiftUI path on the WEB / iOS / ANDROID syntax tabs.' },
+      { k: 'Alias resolution',    v: 'DTCG `{color.primary.500}` references resolve in a second pass after concrete tokens land.' },
+      { k: 'Font matching',       v: '4-step resolver — exact → split style suffix → normalised index → fallback. Catches PostScript-style families like JetBrainsMono-Bold against Figma\'s "JetBrains Mono" + "Bold" canonical naming.' },
+    ],
+    direction: {
+      title: 'Direction inverted, again',
+      body:  'Tokens Studio, Specify, Supernova all push Figma → code. Tokextract goes code → tokens, and this plugin extends that line all the way to a hydrated Figma file. SwiftUI codebase becomes the source of truth; Figma reflects it.',
+    },
+    install: {
+      title: 'Install (developer)',
+      steps: [
+        { label: 'Build the plugin:',                   cmd: 'cd plugins/tokextract-figma && npm install && npm run build' },
+        { label: 'Load in Figma desktop:',              cmd: 'Plugins → Development → Import plugin from manifest…' },
+        { label: 'Run on any file:',                    cmd: 'Plugins → Development → Tokextract' },
+      ],
+      note: 'Lives at plugins/tokextract-figma/ in this repo. Not yet on the Figma Community marketplace — that\'s tracked as v2.',
+    },
+  },
+
   roadmap: {
     title:  'Roadmap',
     v1: {
@@ -115,6 +141,7 @@ const TOKEXTRACT = {
         'Vendor namespace from Info.plist or .xcodeproj (multi-target-aware)',
         'Live-LLM smoke validated on Grapla + Ocras (both produce brand-correct DESIGN.md)',
         '246 unit + e2e tests, golden fixture snapshots',
+        'Companion Figma plugin (preview): tokens.json → Variables, text styles, effect styles, spec page',
       ],
     },
     v2: {
@@ -122,7 +149,8 @@ const TOKEXTRACT = {
       items: [
         'GitHub-hosted marketplace distribution (esbuild bundle for native deps, or post-install hook)',
         'SwiftSyntax-based --accurate parser (opt-in for Apple-toolchain users)',
-        'Direct Figma Variables REST API push (Enterprise)',
+        'Figma plugin published to the Community marketplace',
+        'Dark-mode emission from .colorset appearances + adaptive Color closures',
         '--watch mode',
         'UIKit fallback for non-SwiftUI codebases',
         'MCP server for non-Claude-Code agents',

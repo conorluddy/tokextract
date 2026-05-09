@@ -11,6 +11,7 @@ function TokextractPage() {
       <Validation />
       <Sample />
       <Pipeline />
+      <FigmaPlugin />
       <Roadmap />
       <Footer />
     </div>
