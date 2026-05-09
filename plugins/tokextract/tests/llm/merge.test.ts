@@ -303,6 +303,64 @@ describe("merge — aliasOf propagation", () => {
   });
 });
 
+describe("merge — dark-mode propagation", () => {
+  const DARK_COLOR: NormalizedColor = {
+    r: 0.125,
+    g: 0.125,
+    b: 0.114,
+    a: 1.0,
+    colorSpace: "display-p3",
+  };
+
+  it("emits $modes.dark on the LLM-named candidate when finding carries darkValue", () => {
+    const finding: RawFinding = {
+      ...makeColorFinding("appBackground", "Assets.xcassets/AppBackground.colorset"),
+      assetName: "AppBackground",
+      hasDarkVariant: true,
+      darkValue: DARK_COLOR,
+    };
+    const findings = makeFindingsFile([finding]);
+    const mapping: Mapping = {
+      declName: "appBackground",
+      sourcePath: "Assets.xcassets/AppBackground.colorset",
+      name: "color.semantic.background",
+      group: "semantic",
+      confidence: "high",
+    };
+
+    const result = buildCandidateFile(findings, "color", [mapping]);
+    expect(result.candidates[0]?.$modes).toEqual({
+      dark: {
+        $value: { colorSpace: "display-p3", components: [0.125, 0.125, 0.114, 1.0] },
+      },
+    });
+  });
+
+  it("emits $modes.dark on the mechanical fallback when no mapping is provided", () => {
+    const finding: RawFinding = {
+      ...makeColorFinding("appBackground", "Assets.xcassets/AppBackground.colorset"),
+      hasDarkVariant: true,
+      darkValue: DARK_COLOR,
+    };
+    const findings = makeFindingsFile([finding]);
+
+    const result = buildCandidateFile(findings, "color", []);
+    expect(result.candidates[0]?.$modes).toEqual({
+      dark: {
+        $value: { colorSpace: "display-p3", components: [0.125, 0.125, 0.114, 1.0] },
+      },
+    });
+  });
+
+  it("does not set $modes when finding has no darkValue", () => {
+    const finding = makeColorFinding("brandPrimary", "Sources/Color+Brand.swift");
+    const findings = makeFindingsFile([finding]);
+
+    const result = buildCandidateFile(findings, "color", []);
+    expect(result.candidates[0]?.$modes).toBeUndefined();
+  });
+});
+
 describe("merge — call-site findings excluded from candidates", () => {
   it("does not include call-site (non-declaration) findings in candidates", () => {
     const callSiteFinding: RawFinding = {

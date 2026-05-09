@@ -210,6 +210,70 @@ describe("buildMechanicalColorCandidates", () => {
     expect(result.unresolved.length).toBe(1);
   });
 
+  it("emits $modes.dark when finding has a darkValue variant", () => {
+    const findings: RawFinding[] = [
+      {
+        category: "color",
+        sourcePath: "Assets.xcassets/AppBackground.colorset",
+        line: 1,
+        col: 0,
+        declName: "AppBackground",
+        rawValue: "<asset-catalog:AppBackground>",
+        normalizedValue: { r: 0.976, g: 0.969, b: 0.941, a: 1.0, colorSpace: "srgb" },
+        context: "Asset Catalog colorset",
+        isDeclaration: true,
+        assetName: "AppBackground",
+        hasDarkVariant: true,
+        darkValue: { r: 0.125, g: 0.125, b: 0.114, a: 1.0, colorSpace: "display-p3" },
+      },
+    ];
+
+    const result = buildMechanicalColorCandidates(findings);
+    expect(result.candidates.length).toBe(1);
+    const token = result.candidates[0];
+    expect(token?.$modes).toEqual({
+      dark: {
+        $value: {
+          colorSpace: "display-p3",
+          components: [0.125, 0.125, 0.114, 1.0],
+        },
+      },
+    });
+
+    // And $modes survives the emit + schema-validate round-trip.
+    const emitResult = emitDtcg([result], { outputDir: tempDir, schemaPath: SCHEMA_PATH });
+    expect(emitResult.validationPassed).toBe(true);
+    const emitted = JSON.parse(fs.readFileSync(emitResult.tokensPath, "utf-8")) as Record<
+      string,
+      unknown
+    >;
+    const emittedToken = (emitted.color as Record<string, unknown>)?.["app-background"] as Record<
+      string,
+      unknown
+    >;
+    expect(emittedToken?.$modes).toBeDefined();
+    expect((emittedToken.$modes as Record<string, unknown>).dark).toBeDefined();
+  });
+
+  it("does not emit $modes when finding has no darkValue", () => {
+    const findings: RawFinding[] = [
+      {
+        category: "color",
+        sourcePath: "Color.swift",
+        line: 5,
+        col: 4,
+        declName: "brandPrimary",
+        rawValue: "Color(.sRGB, ...)",
+        normalizedValue: { r: 0.067, g: 0.537, b: 1.0, a: 1.0, colorSpace: "srgb" },
+        context: "extension Color static let",
+        isDeclaration: true,
+      },
+    ];
+
+    const result = buildMechanicalColorCandidates(findings);
+    expect(result.candidates[0]?.$modes).toBeUndefined();
+  });
+
   it("skips non-declaration findings (call sites)", () => {
     const findings: RawFinding[] = [
       {

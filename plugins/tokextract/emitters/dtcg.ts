@@ -145,6 +145,9 @@ function insertToken(tokens: TokensJson, candidate: CandidateToken): void {
   if (candidate.$extensions !== undefined) {
     tokenEntry.$extensions = candidate.$extensions;
   }
+  if (candidate.$modes !== undefined) {
+    tokenEntry.$modes = candidate.$modes;
+  }
 
   // Explicitly NOT including: _provenance, _confidence, _llmDerived, _inferred
   current[leafName] = tokenEntry;
@@ -269,7 +272,7 @@ export function buildMechanicalColorCandidates(
       continue;
     }
 
-    candidates.push({
+    const candidate: CandidateToken = {
       name: tokenName,
       $type: "color",
       $value: {
@@ -277,6 +280,23 @@ export function buildMechanicalColorCandidates(
         components: [normalizedColor.r, normalizedColor.g, normalizedColor.b, normalizedColor.a],
       },
       $description: `Extracted from ${finding.sourcePath}:${finding.line}`,
+      ...(finding.darkValue
+        ? {
+            $modes: {
+              dark: {
+                $value: {
+                  colorSpace: finding.darkValue.colorSpace,
+                  components: [
+                    finding.darkValue.r,
+                    finding.darkValue.g,
+                    finding.darkValue.b,
+                    finding.darkValue.a,
+                  ],
+                },
+              },
+            },
+          }
+        : {}),
       _provenance: [
         {
           sourcePath: finding.sourcePath,
@@ -286,7 +306,8 @@ export function buildMechanicalColorCandidates(
       ],
       _confidence: "high",
       _llmDerived: false,
-    });
+    };
+    candidates.push(candidate);
   }
 
   return { category: "color", candidates, unresolved };

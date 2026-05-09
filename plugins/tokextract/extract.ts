@@ -462,6 +462,7 @@ async function runParse(options: ParseOptions): Promise<void> {
         isDeclaration: true,
         assetName,
         hasDarkVariant: variants.dark !== null,
+        darkValue: variants.dark,
         severity: "info",
       };
       allFindings.push(catalogFinding);
@@ -510,6 +511,7 @@ async function runParse(options: ParseOptions): Promise<void> {
           assetName: canonicalName,
           normalizedValue: primary,
           hasDarkVariant: resolved.dark !== null,
+          darkValue: resolved.dark,
         };
       } else {
         allFindings[i] = {

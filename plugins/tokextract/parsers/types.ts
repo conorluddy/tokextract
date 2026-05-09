@@ -39,6 +39,8 @@ export interface RawFinding {
   readonly assetName?: string;
   readonly assetMissing?: boolean;
   readonly hasDarkVariant?: boolean;
+  /** Dark-mode color variant from a `.colorset` asset, when one is defined. */
+  readonly darkValue?: NormalizedColor | null;
   readonly hasDynamicType?: boolean;
   readonly shapeType?: string;
   readonly modifierChain?: ReadonlyArray<{
@@ -86,6 +88,8 @@ export interface CandidateToken {
   readonly $value: unknown;
   readonly $description?: string;
   readonly $extensions?: Record<string, unknown>;
+  /** DTCG draft `$modes`. Currently used only for `dark` color variants. */
+  readonly $modes?: Record<string, { readonly $value: unknown }>;
 
   // Provenance — every candidate must cite its source(s)
   readonly _provenance: readonly TokenProvenance[];
