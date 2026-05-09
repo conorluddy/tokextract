@@ -40,6 +40,17 @@ export async function importTypography(
     result.skipped.push({ name: token.name, reason: "typography value malformed" });
     return;
   }
+  // Guard: Figma rejects fontSize < 1, and Tokextract is known to emit
+  // typography tokens with fontSize 0/null when it has misclassified a UI
+  // string literal as a typography token (see upstream issue #3). These
+  // aren't real typography tokens — drop them into the nonDesignTokens
+  // counter so they don't pollute the skipped panel or crash the import.
+  const requestedSize = pxOrDefault(value.fontSize, 0);
+  if (!Number.isFinite(requestedSize) || requestedSize < 1) {
+    result.nonDesignTokens++;
+    return;
+  }
+
   const family = Array.isArray(value.fontFamily) ? value.fontFamily[0] : value.fontFamily;
   const style = weightNumberToStyleName(
     typeof value.fontWeight === "number" ? value.fontWeight : weightNameToNumber(String(value.fontWeight)) ?? 400,
@@ -57,7 +68,7 @@ export async function importTypography(
   const text = figma.createTextStyle();
   text.name = token.name;
   text.fontName = matched.fontName;
-  text.fontSize = pxOrDefault(value.fontSize, 16);
+  text.fontSize = requestedSize;
   if (value.lineHeight) {
     if (typeof value.lineHeight === "number") {
       text.lineHeight = { unit: "PERCENT", value: value.lineHeight * 100 };
