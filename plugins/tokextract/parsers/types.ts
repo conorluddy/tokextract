@@ -38,7 +38,6 @@ export interface RawFinding {
   readonly isSystemAlias?: boolean;
   readonly assetName?: string;
   readonly assetMissing?: boolean;
-  readonly hasDarkVariant?: boolean;
   /** Dark-mode color variant from a `.colorset` asset, when one is defined. */
   readonly darkValue?: NormalizedColor | null;
   readonly hasDynamicType?: boolean;

@@ -38,6 +38,7 @@ const Ajv = require("ajv/dist/2020");
 const addFormats = require("ajv-formats");
 
 import type { CandidateFile, CandidateToken } from "../parsers/types.js";
+import { buildColorModes } from "./color-modes.js";
 
 // === PUBLIC API ===
 
@@ -272,6 +273,7 @@ export function buildMechanicalColorCandidates(
       continue;
     }
 
+    const modes = buildColorModes(finding);
     const candidate: CandidateToken = {
       name: tokenName,
       $type: "color",
@@ -280,23 +282,7 @@ export function buildMechanicalColorCandidates(
         components: [normalizedColor.r, normalizedColor.g, normalizedColor.b, normalizedColor.a],
       },
       $description: `Extracted from ${finding.sourcePath}:${finding.line}`,
-      ...(finding.darkValue
-        ? {
-            $modes: {
-              dark: {
-                $value: {
-                  colorSpace: finding.darkValue.colorSpace,
-                  components: [
-                    finding.darkValue.r,
-                    finding.darkValue.g,
-                    finding.darkValue.b,
-                    finding.darkValue.a,
-                  ],
-                },
-              },
-            },
-          }
-        : {}),
+      ...(modes ? { $modes: modes } : {}),
       _provenance: [
         {
           sourcePath: finding.sourcePath,

@@ -223,7 +223,6 @@ async function enrichColorFindingsWithCatalog(
         ...finding,
         assetName: canonicalName,
         normalizedValue: primary,
-        hasDarkVariant: resolved.dark !== null,
       };
     } else {
       findings[i] = {

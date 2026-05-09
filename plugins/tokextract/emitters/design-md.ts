@@ -120,7 +120,7 @@ function buildColorsSection(data: DesignMdData, options: DesignMdOptions): strin
     .map((t) => {
       const valueStr = formatColorValue(t.$value);
       const darkValue = extractDarkValue(t);
-      const adaptive = darkValue ? ` / ${formatColorValue(darkValue)} dark` : "";
+      const adaptive = darkValue ? ` → dark: ${formatColorValue(darkValue)}` : "";
       const desc = t.$description ? ` — ${t.$description}` : "";
       return `- \`${t.name}\`: ${valueStr}${adaptive}${desc}`;
     })
@@ -322,11 +322,8 @@ function tokenLastSegment(name: string): string {
   return parts[parts.length - 1] ?? name;
 }
 
-function extractDarkValue(token: { $modes?: unknown }): unknown | null {
-  const modes = token.$modes;
-  if (typeof modes !== "object" || modes === null) return null;
-  const dark = (modes as Record<string, { $value?: unknown }>).dark;
-  return dark?.$value ?? null;
+function extractDarkValue(token: CandidateToken): unknown | null {
+  return token.$modes?.dark?.$value ?? null;
 }
 
 function formatColorValue(value: unknown): string {

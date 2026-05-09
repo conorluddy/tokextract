@@ -14,6 +14,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { buildColorModes } from "../emitters/color-modes.js";
 import type {
   CandidateFile,
   CandidateToken,
@@ -195,7 +196,7 @@ function buildLlmCandidate(finding: RawFinding, mapping: Mapping): CandidateToke
   const dtcgValue = findingToDtcgValue(finding);
   if (dtcgValue === null) return null;
 
-  const modes = buildDarkMode(finding);
+  const modes = buildColorModes(finding);
 
   const candidate: CandidateToken = {
     name: mapping.name,
@@ -230,7 +231,7 @@ function buildMechanicalCandidate(
   if (dtcgValue === null) return null;
 
   const mechanicalName = buildMechanicalName(finding, category);
-  const modes = buildDarkMode(finding);
+  const modes = buildColorModes(finding);
 
   return {
     name: mechanicalName,
@@ -306,24 +307,6 @@ function colorToHex(color: NormalizedColor): string | null {
  * Convert a finding's normalizedValue to a DTCG-compatible $value.
  * Returns null when normalizedValue is absent or unresolvable.
  */
-/**
- * Build a `$modes` object from a finding's dark-mode color variant, when present.
- * Returns null when the finding has no dark variant (or it isn't a color).
- */
-function buildDarkMode(finding: RawFinding): Record<string, { $value: unknown }> | null {
-  if (finding.category !== "color") return null;
-  const dark = finding.darkValue;
-  if (!dark) return null;
-  return {
-    dark: {
-      $value: {
-        colorSpace: dark.colorSpace ?? "srgb",
-        components: [dark.r, dark.g, dark.b, dark.a ?? 1.0],
-      },
-    },
-  };
-}
-
 function findingToDtcgValue(finding: RawFinding): unknown | null {
   if (finding.normalizedValue === null || finding.normalizedValue === undefined) {
     return null;

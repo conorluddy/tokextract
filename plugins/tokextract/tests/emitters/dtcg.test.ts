@@ -223,7 +223,6 @@ describe("buildMechanicalColorCandidates", () => {
         context: "Asset Catalog colorset",
         isDeclaration: true,
         assetName: "AppBackground",
-        hasDarkVariant: true,
         darkValue: { r: 0.125, g: 0.125, b: 0.114, a: 1.0, colorSpace: "display-p3" },
       },
     ];

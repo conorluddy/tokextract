@@ -461,7 +461,6 @@ async function runParse(options: ParseOptions): Promise<void> {
         context: "Asset Catalog colorset",
         isDeclaration: true,
         assetName,
-        hasDarkVariant: variants.dark !== null,
         darkValue: variants.dark,
         severity: "info",
       };
@@ -510,7 +509,6 @@ async function runParse(options: ParseOptions): Promise<void> {
           ...finding,
           assetName: canonicalName,
           normalizedValue: primary,
-          hasDarkVariant: resolved.dark !== null,
           darkValue: resolved.dark,
         };
       } else {
