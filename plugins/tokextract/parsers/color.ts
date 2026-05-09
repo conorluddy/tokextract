@@ -151,7 +151,6 @@ function extractExtensionColorDeclarations(
       isDeclaration: true,
       ...(colorForm.isSystemAlias !== undefined && { isSystemAlias: colorForm.isSystemAlias }),
       ...(colorForm.assetName !== undefined && { assetName: colorForm.assetName }),
-      hasDarkVariant: false,
       ...(colorForm.severity !== undefined && { severity: colorForm.severity }),
       ...(colorForm.requiresSemanticResolution !== undefined && {
         requiresSemanticResolution: colorForm.requiresSemanticResolution,
@@ -220,7 +219,6 @@ function extractAdaptiveColorDeclarations(tree: Tree, filePath: string): RawFind
       normalizedValue: null, // Needs LLM to resolve both variants
       context: "extension Color static let (adaptive light/dark)",
       isDeclaration: true,
-      hasDarkVariant: true,
       severity: "info",
     };
 
@@ -267,7 +265,6 @@ function extractEnvironmentConditionalColors(
       normalizedValue: null,
       context: "@Environment colorScheme conditional",
       isDeclaration: false,
-      hasDarkVariant: true,
       severity: "info",
     });
   }
@@ -285,7 +282,7 @@ function extractEnvironmentConditionalColors(
  * or a system semantic color (e.g. .label, .systemBackground, .tint).
  *
  * extract.ts Stage 2b post-processes these findings: if `assetName` matches a
- * loaded colorset key, the finding is enriched with `normalizedValue`/`hasDarkVariant`;
+ * loaded colorset key, the finding is enriched with `normalizedValue`/`darkValue`;
  * if it matches a known system semantic name, `isSystemAlias` is set.
  *
  * Examples matched:
@@ -324,7 +321,6 @@ function extractColorResourceCallSites(source: string, filePath: string): RawFin
       context: "Color(.foo) call site (ColorResource)",
       isDeclaration: false,
       assetName: identifier,
-      hasDarkVariant: false,
       severity: "info",
     });
   }
@@ -398,7 +394,6 @@ function extractImplicitShapeStyleColorRefs(source: string, filePath: string): R
       context: `.${modifier}(.${identifier}) implicit ShapeStyle`,
       isDeclaration: false,
       assetName: identifier,
-      hasDarkVariant: false,
       severity: "info",
     });
   }

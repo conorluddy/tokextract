@@ -33,7 +33,6 @@ function makeColorFinding(
     normalizedValue,
     context: "extension Color static let",
     isDeclaration: true,
-    hasDarkVariant: false,
     severity: "info",
   };
 }
@@ -169,7 +168,6 @@ describe("merge — mechanical fallback", () => {
       normalizedValue: { r: 0.102, g: 0.11, b: 0.118, a: 1.0, colorSpace: "srgb" },
       context: "extension Color static let",
       isDeclaration: true,
-      hasDarkVariant: false,
       severity: "info",
     };
     const findings = makeFindingsFile([finding]);
@@ -193,7 +191,6 @@ describe("merge — mechanical fallback", () => {
       context: "extension Color static let",
       isDeclaration: true,
       assetMissing: true,
-      hasDarkVariant: false,
       severity: "error",
     };
     const findings = makeFindingsFile([finding]);
@@ -316,7 +313,6 @@ describe("merge — dark-mode propagation", () => {
     const finding: RawFinding = {
       ...makeColorFinding("appBackground", "Assets.xcassets/AppBackground.colorset"),
       assetName: "AppBackground",
-      hasDarkVariant: true,
       darkValue: DARK_COLOR,
     };
     const findings = makeFindingsFile([finding]);
@@ -339,7 +335,6 @@ describe("merge — dark-mode propagation", () => {
   it("emits $modes.dark on the mechanical fallback when no mapping is provided", () => {
     const finding: RawFinding = {
       ...makeColorFinding("appBackground", "Assets.xcassets/AppBackground.colorset"),
-      hasDarkVariant: true,
       darkValue: DARK_COLOR,
     };
     const findings = makeFindingsFile([finding]);
@@ -374,7 +369,6 @@ describe("merge — call-site findings excluded from candidates", () => {
       context: ".foregroundStyle(.accent) implicit ShapeStyle",
       isDeclaration: false,
       assetName: "accent",
-      hasDarkVariant: false,
       severity: "info",
     };
     const findings = makeFindingsFile([callSiteFinding]);
