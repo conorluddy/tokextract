@@ -1,6 +1,6 @@
 import type { FlatToken } from "../dtcg";
 import { toRgba } from "../color";
-import type { ImportContext, ImportResult } from "./index";
+import { decorateVariable, ensureVariable, type ImportContext, type ImportResult } from "./index";
 
 export function importColor(ctx: ImportContext, token: FlatToken, result: ImportResult): void {
   const rgba = toRgba(token.value);
@@ -8,9 +8,12 @@ export function importColor(ctx: ImportContext, token: FlatToken, result: Import
     result.skipped.push({ name: token.name, reason: "could not parse color value" });
     return;
   }
-  const variable = figma.variables.createVariable(token.name, ctx.collection, "COLOR");
+  const variable = ensureVariable(ctx, token.name, "COLOR");
+  if (!variable) {
+    result.skipped.push({ name: token.name, reason: "existing variable has different type" });
+    return;
+  }
   variable.setValueForMode(ctx.modeId, rgba);
-  if (token.description) variable.description = token.description;
-  ctx.byName.set(token.name, variable);
+  decorateVariable(variable, token);
   result.variables++;
 }

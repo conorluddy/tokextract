@@ -65,8 +65,17 @@ src/
 
 `dtcg.ts#flatten()` turns the nested DTCG tree into a flat list of `{ path, name, type, value }`. The router in `importers/index.ts` dispatches each token to its category importer.
 
+## Behaviour
+
+- **Idempotent.** Re-running with the same JSON updates the existing `Tokextract` collection in place — no duplicate collections, variables, or styles.
+- **Aliases.** DTCG `"{color.primary.500}"` reference values are resolved in a second pass after concrete tokens land. Circular references and missing targets surface as skipped entries.
+- **Cubic-bezier** is split into 4 FLOAT variables (`/x1`, `/y1`, `/x2`, `/y2`) plus a STRING `/css` for paste-into-CSS.
+- **Variable scopes** are inferred from token path (radius → CORNER_RADIUS, gap/spacing → GAP, opacity → OPACITY, text-named colors → TEXT_FILL, etc.) so Figma's pickers stay tidy.
+- **Code syntax.** Each variable carries its dotted path on the WEB / iOS / ANDROID syntax tabs in Dev Mode.
+- **Materials hidden from publishing** — JSON-serialised material strings stay out of team-library exports.
+
 ## Caveats
 
-- Token aliases (`{color.primary.500}` reference syntax) are resolved by name lookup at the end of import; circular references are skipped with a warning. Not yet implemented — see TODO.
 - `gradient`, `border`, `strokeStyle`, `transition` composites: not in v1, will route to the spec page only.
 - Modes are single (default `Mode 1`). Light/dark mode support is straightforward but waits for Tokextract to start emitting `$extensions.tokextract.modes`.
+- Spec page falls back gracefully if Inter isn't available (tries Roboto, then the first available font).

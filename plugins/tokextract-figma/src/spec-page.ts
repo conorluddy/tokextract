@@ -6,25 +6,51 @@ const SWATCH = 96;
 const GAP = 16;
 const COLUMN = 6;
 
+interface SpecFonts { regular: FontName; bold: FontName; }
+
 export async function buildSpecPage(tokens: FlatToken[]): Promise<PageNode> {
   const page = figma.createPage();
   page.name = PAGE_NAME;
 
-  await figma.loadFontAsync({ family: "Inter", style: "Regular" });
-  await figma.loadFontAsync({ family: "Inter", style: "Bold" });
+  const fonts = await pickSpecFonts();
 
   let y = 64;
-  y = renderColors(page, tokens.filter((t) => t.type === "color"), y);
-  y = renderTypography(page, tokens.filter((t) => t.type === "typography"), y);
-  y = renderDimensions(page, tokens.filter((t) => t.type === "dimension"), y);
+  y = renderColors(page, tokens.filter((t) => t.type === "color"), y, fonts);
+  y = renderTypography(page, tokens.filter((t) => t.type === "typography"), y, fonts);
+  y = renderDimensions(page, tokens.filter((t) => t.type === "dimension"), y, fonts);
 
   return page;
 }
 
-function renderColors(page: PageNode, tokens: FlatToken[], top: number): number {
+async function pickSpecFonts(): Promise<SpecFonts> {
+  const preferred: FontName[] = [
+    { family: "Inter", style: "Regular" },
+    { family: "Roboto", style: "Regular" },
+  ];
+  for (const font of preferred) {
+    try {
+      await figma.loadFontAsync(font);
+      const boldCandidate: FontName = { family: font.family, style: "Bold" };
+      try {
+        await figma.loadFontAsync(boldCandidate);
+        return { regular: font, bold: boldCandidate };
+      } catch {
+        return { regular: font, bold: font };
+      }
+    } catch {
+      // try next
+    }
+  }
+  const available = await figma.listAvailableFontsAsync();
+  if (available.length === 0) throw new Error("No fonts available to render spec page.");
+  const fallback = available[0].fontName;
+  await figma.loadFontAsync(fallback);
+  return { regular: fallback, bold: fallback };
+}
+
+function renderColors(page: PageNode, tokens: FlatToken[], top: number, fonts: SpecFonts): number {
   if (tokens.length === 0) return top;
-  const heading = makeHeading("Colors", 64, top);
-  page.appendChild(heading);
+  page.appendChild(makeHeading("Colors", 64, top, fonts));
   let y = top + 56;
   let column = 0;
   for (const token of tokens) {
@@ -36,11 +62,11 @@ function renderColors(page: PageNode, tokens: FlatToken[], top: number): number 
     swatch.y = y;
     swatch.resize(SWATCH, SWATCH);
     swatch.cornerRadius = 8;
-    swatch.fills = [{ type: "SOLID", color: rgba, opacity: rgba.a }];
+    swatch.fills = [{ type: "SOLID", color: { r: rgba.r, g: rgba.g, b: rgba.b }, opacity: rgba.a }];
     page.appendChild(swatch);
 
     const label = figma.createText();
-    label.fontName = { family: "Inter", style: "Regular" };
+    label.fontName = fonts.regular;
     label.fontSize = 11;
     label.characters = token.name;
     label.x = swatch.x;
@@ -57,14 +83,13 @@ function renderColors(page: PageNode, tokens: FlatToken[], top: number): number 
   return y + SWATCH + 96;
 }
 
-function renderTypography(page: PageNode, tokens: FlatToken[], top: number): number {
+function renderTypography(page: PageNode, tokens: FlatToken[], top: number, fonts: SpecFonts): number {
   if (tokens.length === 0) return top;
-  const heading = makeHeading("Typography", 64, top);
-  page.appendChild(heading);
+  page.appendChild(makeHeading("Typography", 64, top, fonts));
   let y = top + 56;
   for (const token of tokens) {
     const sample = figma.createText();
-    sample.fontName = { family: "Inter", style: "Regular" };
+    sample.fontName = fonts.regular;
     sample.fontSize = 24;
     sample.characters = token.name;
     sample.x = 64;
@@ -75,10 +100,9 @@ function renderTypography(page: PageNode, tokens: FlatToken[], top: number): num
   return y + 64;
 }
 
-function renderDimensions(page: PageNode, tokens: FlatToken[], top: number): number {
+function renderDimensions(page: PageNode, tokens: FlatToken[], top: number, fonts: SpecFonts): number {
   if (tokens.length === 0) return top;
-  const heading = makeHeading("Dimensions", 64, top);
-  page.appendChild(heading);
+  page.appendChild(makeHeading("Dimensions", 64, top, fonts));
   let y = top + 56;
   for (const token of tokens) {
     const value = readPx(token.value);
@@ -91,7 +115,7 @@ function renderDimensions(page: PageNode, tokens: FlatToken[], top: number): num
     page.appendChild(bar);
 
     const label = figma.createText();
-    label.fontName = { family: "Inter", style: "Regular" };
+    label.fontName = fonts.regular;
     label.fontSize = 12;
     label.characters = `${token.name}  ·  ${value}px`;
     label.x = 64 + Math.max(1, value) + 12;
@@ -103,9 +127,9 @@ function renderDimensions(page: PageNode, tokens: FlatToken[], top: number): num
   return y + 64;
 }
 
-function makeHeading(text: string, x: number, y: number): TextNode {
+function makeHeading(text: string, x: number, y: number, fonts: SpecFonts): TextNode {
   const node = figma.createText();
-  node.fontName = { family: "Inter", style: "Bold" };
+  node.fontName = fonts.bold;
   node.fontSize = 32;
   node.characters = text;
   node.x = x;

@@ -1,12 +1,15 @@
 import type { FlatToken, DtcgTypographyValue } from "../dtcg";
-import type { ImportContext, ImportResult } from "./index";
+import { decorateVariable, ensureVariable, type ImportContext, type ImportResult } from "./index";
 
 export function importFontFamily(ctx: ImportContext, token: FlatToken, result: ImportResult): void {
   const value = Array.isArray(token.value) ? String(token.value[0]) : String(token.value);
-  const variable = figma.variables.createVariable(token.name, ctx.collection, "STRING");
+  const variable = ensureVariable(ctx, token.name, "STRING");
+  if (!variable) {
+    result.skipped.push({ name: token.name, reason: "existing variable has different type" });
+    return;
+  }
   variable.setValueForMode(ctx.modeId, value);
-  if (token.description) variable.description = token.description;
-  ctx.byName.set(token.name, variable);
+  decorateVariable(variable, token);
   result.variables++;
 }
 
@@ -16,10 +19,13 @@ export function importFontWeight(ctx: ImportContext, token: FlatToken, result: I
     result.skipped.push({ name: token.name, reason: `unknown font weight: ${String(token.value)}` });
     return;
   }
-  const variable = figma.variables.createVariable(token.name, ctx.collection, "FLOAT");
+  const variable = ensureVariable(ctx, token.name, "FLOAT");
+  if (!variable) {
+    result.skipped.push({ name: token.name, reason: "existing variable has different type" });
+    return;
+  }
   variable.setValueForMode(ctx.modeId, numeric);
-  if (token.description) variable.description = token.description;
-  ctx.byName.set(token.name, variable);
+  decorateVariable(variable, token);
   result.variables++;
 }
 

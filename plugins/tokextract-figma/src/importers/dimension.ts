@@ -1,5 +1,5 @@
 import type { FlatToken } from "../dtcg";
-import type { ImportContext, ImportResult } from "./index";
+import { decorateVariable, ensureVariable, type ImportContext, type ImportResult } from "./index";
 
 export function importDimension(ctx: ImportContext, token: FlatToken, result: ImportResult): void {
   const px = toPx(token.value);
@@ -7,10 +7,13 @@ export function importDimension(ctx: ImportContext, token: FlatToken, result: Im
     result.skipped.push({ name: token.name, reason: "could not parse dimension value" });
     return;
   }
-  const variable = figma.variables.createVariable(token.name, ctx.collection, "FLOAT");
+  const variable = ensureVariable(ctx, token.name, "FLOAT");
+  if (!variable) {
+    result.skipped.push({ name: token.name, reason: "existing variable has different type" });
+    return;
+  }
   variable.setValueForMode(ctx.modeId, px);
-  if (token.description) variable.description = token.description;
-  ctx.byName.set(token.name, variable);
+  decorateVariable(variable, token);
   result.variables++;
 }
 

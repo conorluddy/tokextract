@@ -79,6 +79,21 @@ export interface FlatToken {
   extensions?: Record<string, unknown>;
 }
 
+// Figma Variable names use `/` as a group separator. Segments must not contain
+// `/` themselves, leading/trailing whitespace, or chars Figma rejects in pickers.
+// We allow [A-Za-z0-9_-], collapse anything else to `-`, and drop empty segments.
+export function sanitizeName(segments: string[]): string {
+  const cleaned = segments
+    .map((segment) =>
+      segment
+        .trim()
+        .replace(/[^A-Za-z0-9_-]+/g, "-")
+        .replace(/^-+|-+$/g, ""),
+    )
+    .filter((segment) => segment.length > 0);
+  return cleaned.length > 0 ? cleaned.join("/") : "unnamed";
+}
+
 export function flatten(file: DtcgFile): FlatToken[] {
   const out: FlatToken[] = [];
   walk(file, [], undefined, out);
@@ -100,7 +115,7 @@ function walk(
     if (!type) return;
     out.push({
       path,
-      name: path.join("/"),
+      name: sanitizeName(path),
       type,
       value: group.$value,
       description: group.$description,
